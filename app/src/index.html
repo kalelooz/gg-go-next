@@ -218,9 +218,11 @@ function tick() {
   // so they finish before the stack call at :48
   const soon = [];
   const bottle = Object.values(me?.items || {}).some(i => i?.name === 'item_bottle');
-  document.getElementById('water').hidden = t >= 240;
   for (const id of ['water', 'power', 'bounty', 'wisdom', 'lotus']) {
     const left = untilNext(t, SCHEDULES[id]), v = fitRole(id);
+    // water runes are over after 4:00; their row goes and they're never spoken again
+    if (id === 'water') document.getElementById('water').hidden = left === Infinity;
+    if (left === Infinity) continue;
     setRow(id, 'in ' + fmt(left), left <= RUNE_WARN && v !== 'dim', v === 'dim' ? 'dim' : null);
     const key = id + Math.round(t + left);
     if (left <= RUNE_WARN && !spoken.has(key)) { spoken.add(key); if (voiced(id, pos(), t, bottle)) soon.push(id); }

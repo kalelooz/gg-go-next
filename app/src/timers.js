@@ -4,14 +4,15 @@ export const SCHEDULES = {
   bounty: { label: 'Bounty', start: 0, every: 240 },
   wisdom: { label: 'Wisdom', start: 420, every: 420 },
   lotus: { label: 'Lotus', start: 180, every: 180 },
-  // water runes spawn only at 2:00 and 4:00; the overlay hides the row after that
-  water: { label: 'Water runes', start: 120, every: 120 },
+  // water runes spawn only at 2:00 and 4:00, then power runes take over those spots
+  water: { label: 'Water runes', start: 120, every: 120, last: 240 },
 };
 
-// Seconds until the next spawn strictly after t
-export function untilNext(t, { start, every }) {
+// Seconds until the next spawn strictly after t; Infinity once a schedule with a `last` spawn is over
+export function untilNext(t, { start, every, last = Infinity }) {
   if (t < start) return start - t;
-  return every - ((t - start) % every);
+  const next = t + every - ((t - start) % every);
+  return next > last ? Infinity : next - t;
 }
 
 // Neutral camps respawn on the minute; a pull around :53 stacks them

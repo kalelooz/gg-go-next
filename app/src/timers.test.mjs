@@ -26,6 +26,13 @@ assert.deepEqual(pits(880, true), { rosh: 'top', tormentor: 'bottom', swapIn: 20
 assert.deepEqual(pits(1000, false), { rosh: 'bottom', tormentor: 'top', swapIn: 200, moves: true });
 assert.deepEqual(pits(1210, true), { rosh: 'top', tormentor: 'bottom', swapIn: 290, moves: true });
 assert.equal(untilNext(170, SCHEDULES.lotus), 10);
+// water: 2:00 and 4:00 only
+assert.equal(untilNext(-30, SCHEDULES.water), 150);
+assert.equal(untilNext(110, SCHEDULES.water), 10);
+assert.equal(untilNext(230, SCHEDULES.water), 10);
+assert.equal(untilNext(240, SCHEDULES.water), Infinity);
+assert.equal(untilNext(345, SCHEDULES.water), Infinity);        // no water call next to the 6:00 power rune
+assert.equal(untilNext(345, SCHEDULES.power), 15);
 
 // events as they appear in our logs (Radiant pushing Dire)
 assert.deepEqual(buildingLost({ type: 'CHAT_MESSAGE_TOWER_KILL', value: 2, value3: 1 }), { team: 'dire', kind: 't1' });
