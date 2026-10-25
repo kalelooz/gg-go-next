@@ -85,6 +85,15 @@ header button{padding:4px 10px;font-size:13px}
 .sugg h2{font-size:16px;font-weight:600;margin:0;flex:1}
 .pool button{padding:3px 9px;font-size:13px}
 .pool button[aria-pressed=true]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.sugg .rank{padding-top:0;font-size:13px;color:var(--soft)}
+.sugg .rank small{flex:1;text-align:right;font-size:12px;color:var(--muted)}
+/* position menu on each picked hero: muted when guessed, solid when you set it, red edge when it's an odd spot */
+select.p{font:inherit;font-size:12px;color:var(--soft);background:var(--raised);border:1px dashed var(--edge);border-radius:5px;padding:2px 2px;width:62px;flex:none;cursor:pointer}
+select.p.set{color:var(--ink);border-style:solid}
+select.p.rare{border:1px solid var(--enemy);color:var(--enemy)}
+.lane{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:4px;font-size:12px;color:var(--muted)}
+.lane span b{font-weight:600}
+.pick .score small.ln{color:var(--soft)}
 #picks{overflow:auto;padding:0 12px 10px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 12px;margin-bottom:8px}
 .pick{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
@@ -182,6 +191,14 @@ footer .row{display:flex;gap:6px}
       <button type="button" data-pool="all" id="allBtn">All heroes</button>
     </div>
   </div>
+  <div class="top rank">
+    <span>Rank by</span>
+    <div class="pool" role="group" aria-label="Rank suggestions by">
+      <button type="button" data-rank="game" title="Win-rate edge over all five enemies for the whole game">Whole game</button>
+      <button type="button" data-rank="lane" title="How your lane goes against the enemies you'll lane with, and with your lane partner">Your lane</button>
+    </div>
+    <small id="laneWho"></small>
+  </div>
   <div id="picks"></div>
 </section>
 
@@ -195,7 +212,7 @@ footer .row{display:flex;gap:6px}
 
 <script type="module">
 import { search, heroById } from './search.js';
-import { suggest, myPool, rolePools, grade, teamShape, draftEdge } from './picks.js';
+import { suggest, myPool, rolePools, grade, teamShape, draftEdge, heroPositions, posShare, assignPositions, laneStats, laneScore, LANE_VS, LANE_PARTNER } from './picks.js';
 
 const BRACKET = 'DIVINE_IMMORTAL', WEEKS = 5;
 // pairs with fewer games than this are too noisy to rank on
@@ -221,11 +238,25 @@ const store = {
 
 const state = {
   enemy: [], ally: [], ban: [], target: 'enemy', results: [], sel: 0,
-  pos: Number(store.get('pos')) || 5, pool: store.get('pool') || 'mine',
+  pos: Number(store.get('pos')) || 5, pool: store.get('pool') || 'mine', rank: store.get('rank') || 'game',
+  // positions you set by hand; the rest are guessed from what each hero usually plays
+  fixed: { enemy: {}, ally: {} },
 };
+const share = (id, p) => posShare(heroPos[id], p);
+// Everyone's position right now. Your team's free positions are the four that aren't yours.
+function positions() {
+  return {
+    enemy: assignPositions(state.enemy, [1, 2, 3, 4, 5], share, state.fixed.enemy),
+    ally: assignPositions(state.ally, [1, 2, 3, 4, 5].filter(p => p !== state.pos), share, state.fixed.ally),
+  };
+}
 const matchups = new Map();     // heroId -> { vs: Map, with: Map } or null while loading
 const myHeroes = {};            // pos -> [{ hero_id, games, win }]
 let roles = null;               // pos -> [heroId] from STRATZ
+let heroPos = {};               // heroId -> { games, wins } per position, from STRATZ
+const lanes = new Map();        // `${pos}:${heroId}` -> { vs, with } laneStats
+// a hero rarely played in a position (under this share of its games) gets flagged there
+const RARE = 0.05;
 let accountId = store.get('accountId');
 let lastMatch = null, hiddenFor = null, sidesFor = null;
 
@@ -294,19 +325,62 @@ async function loadMatchup(id) {
 }
 function setMatchup(id, d) { matchups.set(id, { vs: new Map(d.vs), with: new Map(d.with) }); renderPicks(); }
 
+// Which positions each hero gets played in: the role lists for suggestions, and the positions guessed for each pick
 async function loadRoles() {
-  const key = `roles:${thisWeek}`;
+  const key = `roles2:${thisWeek}`;
   const cached = store.get(key);
-  if (cached) { roles = JSON.parse(cached); renderPicks(); return; }
+  if (cached) { ({ roles, heroPos } = JSON.parse(cached)); render(); return; }
   if (!token()) return;
   const parts = [1, 2, 3, 4, 5].map(n =>
-    `p${n}: winWeek(take: 1, positionIds: [POSITION_${n}], bracketIds: [DIVINE, IMMORTAL]) { heroId matchCount }`).join(' ');
+    `p${n}: winWeek(take: 1, positionIds: [POSITION_${n}], bracketIds: [DIVINE, IMMORTAL]) { heroId matchCount winCount }`).join(' ');
   try {
     const d = (await stratz(`{ heroStats { ${parts} } }`)).heroStats;
-    roles = rolePools({ 1: d.p1, 2: d.p2, 3: d.p3, 4: d.p4, 5: d.p5 });
-    store.set(key, JSON.stringify(roles));
-    renderPicks();
+    const byPos = { 1: d.p1, 2: d.p2, 3: d.p3, 4: d.p4, 5: d.p5 };
+    roles = rolePools(byPos); heroPos = heroPositions(byPos);
+    store.set(key, JSON.stringify({ roles, heroPos }));
+    render();
   } catch (e) { status(`Couldn't load hero roles: ${e.message || e}`, true); }
+}
+
+// Lane results for each candidate at your position: who it laned against and with, last LANE_WEEKS weeks.
+// Batched because the pool can be 60 heroes; each lookup is one alias, and 48 aliases take about a second.
+const LANE_WEEKS = 2, LANE_BATCH = 12;
+const compact = rows => rows.map(r => [r.heroId2, r.matchCount, r.winCount + r.stompWinCount, r.lossCount + r.stompLossCount]);
+const expand = rows => laneStats(rows.map(([heroId2, matchCount, w, l]) => ({ heroId2, matchCount, winCount: w, stompWinCount: 0, lossCount: l, stompLossCount: 0 })));
+// renderPicks calls this every time, so it only re-renders when it added something, and waits a minute after a failure
+let laneBusy = false, laneFailedAt = 0;
+async function loadLanes(pos, ids) {
+  const want = [];
+  let added = false;
+  for (const id of ids) {
+    const k = `${pos}:${id}`;
+    if (lanes.has(k)) continue;
+    const cached = store.get(`lane:${k}:${today}`);
+    if (cached) { const c = JSON.parse(cached); lanes.set(k, { vs: expand(c.vs), with: expand(c.with) }); added = true; }
+    else want.push(id);
+  }
+  if (added) queueMicrotask(renderPicks);
+  if (!want.length || laneBusy || Date.now() - laneFailedAt < 60000 || !token()) return;
+  laneBusy = true;
+  try {
+    for (let i = 0; i < want.length; i += LANE_BATCH) {
+      const chunk = want.slice(i, i + LANE_BATCH);
+      const one = (id, w, kind) => `${kind}${id}w${w}: laneOutcome(heroId: ${id}, isWith: ${kind === 'with'}, week: ${(thisWeek - w) * 604800}, bracketBasicIds: [${BRACKET}], positionIds: [POSITION_${pos}]) {
+        heroId2 matchCount winCount lossCount stompWinCount stompLossCount }`;
+      const q = chunk.flatMap(id => Array.from({ length: LANE_WEEKS }, (_, w) => [one(id, w, 'vs'), one(id, w, 'with')]).flat()).join('\n');
+      const d = (await stratz(`{ heroStats { ${q} } }`)).heroStats;
+      for (const id of chunk) {
+        const rows = kind => Array.from({ length: LANE_WEEKS }, (_, w) => d[`${kind}${id}w${w}`] || []).flat();
+        const c = { vs: compact(rows('vs')), with: compact(rows('with')) };
+        store.set(`lane:${pos}:${id}:${today}`, JSON.stringify(c));
+        lanes.set(`${pos}:${id}`, { vs: expand(c.vs), with: expand(c.with) });
+      }
+      renderPicks();
+    }
+  } catch (e) { laneFailedAt = Date.now(); status(`Couldn't load lane results: ${e.message || e}`, true); }
+  finally { laneBusy = false; }
+  // the role or the pool may have changed while this ran; renderPicks asks for whatever is still missing
+  renderPicks();
 }
 
 async function loadMine(pos) {
@@ -346,9 +420,20 @@ function add(side, hero) {
   // a full team hides its field, so carry on in the next one (5th enemy goes to your team)
   if (list.length >= MAX[side]) focusSide(side);
 }
-function remove(side, id) { state[side] = state[side].filter(x => x !== id); render(); field(side).focus(); }
+function remove(side, id) {
+  state[side] = state[side].filter(x => x !== id);
+  if (state.fixed[side]) delete state.fixed[side][id];
+  render(); field(side).focus();
+}
+// Setting a hero to a position takes it from whoever had it; that hero goes back to being guessed
+function setHeroPos(side, id, p) {
+  const f = state.fixed[side];
+  for (const h in f) if (f[h] === p) delete f[h];
+  f[id] = p;
+  render();
+}
 function clearDraft() {
-  state.enemy = []; state.ally = []; state.ban = [];
+  state.enemy = []; state.ally = []; state.ban = []; state.fixed = { enemy: {}, ally: {} };
   SIDES.forEach(s => field(s).value = '');
   state.results = []; render(); field('enemy').focus();
 }
@@ -376,7 +461,7 @@ for (const side of SIDES) {
     if (e.key === 'ArrowDown' && n) { state.sel = (state.sel + 1) % n; renderResults(); e.preventDefault(); }
     else if (e.key === 'ArrowUp' && n) { state.sel = (state.sel - 1 + n) % n; renderResults(); e.preventDefault(); }
     else if (e.key === 'Enter' && n) { add(side, state.results[state.sel].hero); e.preventDefault(); }
-    else if (e.key === 'Backspace' && !f.value && state[side].length) { state[side].pop(); render(); }
+    else if (e.key === 'Backspace' && !f.value && state[side].length) { const id = state[side].pop(); if (state.fixed[side]) delete state.fixed[side][id]; render(); }
     else if (e.key === 'Escape') { if (n) { state.results = []; renderResults(); } else f.value = ''; }
   });
 }
@@ -389,6 +474,7 @@ for (const side of SIDES) {
 addEventListener('resize', () => { state.results = []; renderResults(); });
 document.querySelectorAll('[data-pos]').forEach(b => b.onclick = () => setPos(Number(b.dataset.pos)));
 document.querySelectorAll('[data-pool]').forEach(b => b.onclick = () => { state.pool = b.dataset.pool; store.set('pool', state.pool); renderPicks(); });
+document.querySelectorAll('[data-rank]').forEach(b => b.onclick = () => { state.rank = b.dataset.rank; store.set('rank', state.rank); renderPicks(); });
 // Your team's column can sit left or right to match your side in Dota's draft screen.
 // The sections move in the page (not just visually) so Tab still goes left to right.
 let allyLeft = store.get('allyLeft') === '1';
@@ -415,12 +501,21 @@ $('saveToken').onclick = async () => {
 
 // --- render ---
 // Filled heroes, then the static field (so typing focus survives re-renders), then empty slots
-function renderTeam(side) {
+function renderTeam(side, pos) {
   const ids = state[side], full = ids.length >= MAX[side];
   $(side + 'Slots').innerHTML = ids.map(id => {
-    const h = heroById[id];
-    return `<div class="slot">${img(h)}<span class="n">${h.name}</span><button class="rm" type="button" data-side="${side}" data-id="${id}" aria-label="Remove ${h.name}">×</button></div>`;
+    const h = heroById[id], p = pos[side][id], set = state.fixed[side][id] === p;
+    const s = share(id, p), hp = heroPos[id];
+    const rare = hp && p && s < RARE;
+    const won = hp?.games[p] ? `, ${Math.round(100 * hp.wins[p] / hp.games[p])}% won there` : '';
+    const pct = s < 0.01 ? 'under 1%' : Math.round(100 * s) + '%';
+    const tip = `${h.name} as ${ROLE[p] || '?'}: ${pct} of its games${won}. ${set ? 'Set by you.' : 'Guessed from what it usually plays.'}`;
+    const opts = [1, 2, 3, 4, 5].map(n => `<option value="${n}"${n === p ? ' selected' : ''}${side === 'ally' && n === state.pos ? ' disabled' : ''} title="${ROLE[n]}">Pos ${n}</option>`).join('');
+    return `<div class="slot">${img(h)}<span class="n">${h.name}</span>
+      <select class="p${set ? ' set' : ''}${rare ? ' rare' : ''}" data-side="${side}" data-id="${id}" title="${tip}" aria-label="Position of ${h.name}">${opts}</select>
+      <button class="rm" type="button" data-side="${side}" data-id="${id}" aria-label="Remove ${h.name}">×</button></div>`;
   }).join('');
+  $(side + 'Slots').querySelectorAll('select.p').forEach(sel => sel.onchange = () => setHeroPos(side, Number(sel.dataset.id), Number(sel.value)));
   $(side + 'Add').hidden = full;
   $(side + 'Empty').innerHTML = '<div class="slot"><span class="ph"></span></div>'.repeat(Math.max(0, MAX[side] - ids.length - 1)) +
     (side === 'ally' ? `<div class="slot you"><span class="ph">You</span>${ROLE[state.pos]}</div>` : '');
@@ -483,10 +578,37 @@ function renderPicks() {
   }
   const mine = Object.fromEntries((myHeroes[state.pos] || []).map(h => [Number(h.hero_id), h]));
   // skip heroes missing from heroes.js (a brand-new hero) instead of breaking the whole list
-  const best = suggest({ candidates: list.ids.filter(id => heroById[id]), enemies: state.enemy, allies: state.ally, taken: taken(),
+  const candidates = list.ids.filter(id => heroById[id]);
+  const all = suggest({ candidates, enemies: state.enemy, allies: state.ally, taken: taken(), limit: Infinity,
     vsOf: id => matchups.get(id)?.vs, withOf: id => matchups.get(id)?.with });
+  // your lane: the enemies in the positions you face, and your team's lane partner
+  const pos = positions();
+  const laners = state.enemy.filter(id => LANE_VS[state.pos].includes(pos.enemy[id]));
+  const partner = state.ally.find(id => pos.ally[id] === LANE_PARTNER[state.pos]) || null;
+  if (laners.length || partner) loadLanes(state.pos, candidates);
+  for (const p of all) { const L = lanes.get(`${state.pos}:${p.id}`); p.lane = L && laneScore(L.vs, L.with, laners, partner); }
+  const byLane = state.rank === 'lane' && (laners.length || partner);
+  const best = (byLane ? [...all].sort((a, b) => (b.lane?.score ?? -Infinity) - (a.lane?.score ?? -Infinity)) : all).slice(0, 5);
+  const label = id => `${heroById[id].name} (${pos.enemy[id] || pos.ally[id]})`;
+  $('laneWho').textContent = laners.length || partner
+    ? 'Lane: ' + [laners.length ? 'vs ' + laners.map(label).join(', ') : '', partner ? 'with ' + label(partner) : ''].filter(Boolean).join(', ')
+    : `Lane shows once their ${LANE_VS[state.pos].map(n => ROLE[n]).join(' or ')} is in`;
+  document.querySelectorAll('[data-rank]').forEach(b => b.setAttribute('aria-pressed', b.dataset.rank === (byLane ? 'lane' : state.rank)));
   el.innerHTML = (list.note ? `<p class="note">${list.note}</p>` : '') + '<div class="card">' + best.map(p => {
     const h = heroById[p.id], g = grade(p), m = mine[p.id];
+    const L = p.lane, needLane = laners.length || partner;
+    const laneChip = (x, word) => {
+      const n = heroById[x.id].name;
+      return x.v == null
+        ? `<span title="Under 80 lanes on record, too few to judge">${word} ${n} <b>few lanes</b></span>`
+        : `<span class="${x.v >= 0 ? 'pos' : 'neg'}" title="${h.name} as ${ROLE[state.pos]} ${word} ${n}: lanes go ${fmtPts(x.v)} vs its usual lane, ${x.n} lanes">${word} ${n} <b>${fmtPts(x.v)}</b></span>`;
+    };
+    const laneRow = !needLane ? '' : L
+      ? `<div class="lane">${L.vs.map(x => laneChip(x, 'vs')).join('')}${L.with ? laneChip(L.with, 'with') : ''}</div>`
+      : '<div class="lane">Lane results loading…</div>';
+    const laneTxt = L?.score != null ? fmtPts(L.score) : null;
+    const big = byLane ? (laneTxt ?? '?') : fmtPts(p.score), bigVal = byLane ? (L?.score ?? 0) : p.score;
+    const other = byLane ? `game ${fmtPts(p.score)}` : laneTxt ? `lane ${laneTxt}` : '';
     const chips = state.enemy.map(e => {
       const x = p.vs.find(v => v.id === e), eh = heroById[e];
       return x
@@ -496,8 +618,8 @@ function renderPicks() {
     const side = m?.games ? `you: ${m.games} games, ${Math.round(100 * m.win / m.games)}% won`
       : p.withSum > 0.5 ? `works with your team ${fmtPts(p.withSum)}` : '';
     return `<div class="pick">${img(h)}<div class="main"><div class="nm"><b>${h.name}</b>${g ? `<span class="g ${g}" title="Grade from its average edge per enemy">${g}</span>` : ''}</div>
-      <div class="vs">${chips}</div></div>
-      <div class="score"><b class="${p.score >= 0 ? 'pos' : 'neg'}">${fmtPts(p.score)}</b><small>${side}</small></div></div>`;
+      <div class="vs">${chips}</div>${laneRow}</div>
+      <div class="score"><b class="${bigVal >= 0 ? 'pos' : 'neg'}">${big}</b>${other ? `<small class="ln">${other}</small>` : ''}<small>${side}</small></div></div>`;
   }).join('') + '</div>' + teamCard(best);
 }
 
@@ -524,14 +646,15 @@ function teamCard(best) {
 
 function render() {
   document.querySelectorAll('[data-pos]').forEach(b => b.setAttribute('aria-pressed', Number(b.dataset.pos) === state.pos));
-  renderTeam('enemy');
-  renderTeam('ally');
+  const pos = positions();
+  renderTeam('enemy', pos);
+  renderTeam('ally', pos);
   renderBans();
   document.querySelectorAll('.slot .rm, .ban').forEach(b => b.onclick = () => remove(b.dataset.side, Number(b.dataset.id)));
   renderResults();
   renderPicks();
   // the overlay reads these for its matchup item hints (same origin, so localStorage is shared)
-  store.set('draftEnemies', JSON.stringify({ at: Date.now(), ids: state.enemy }));
+  store.set('draftEnemies', JSON.stringify({ at: Date.now(), ids: state.enemy, pos: pos.enemy }));
 }
 
 // Opens itself when a draft starts and hides once per match when the game starts
