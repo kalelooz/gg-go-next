@@ -208,7 +208,9 @@ function say(key, text, kind, clip, urgent = false) {
 function tick() {
   const fresh = map && Date.now() - gotAt < 15000;
   hud.classList.toggle('on', settings.show && fresh && IN_GAME.includes(map.game_state));
-  if (!fresh) return;
+  // During the draft the clock counts down each phase to 0 (-1:14, -0:29, -0:15 in our logs), which looks like
+  // the 0:00 bounty spawn; announcing it there also used up the real call before the horn
+  if (!fresh || !IN_GAME.includes(map.game_state)) return;
   // GSI only sends every ~0.5s, so run the clock locally between payloads
   const t = map.clock_time + (map.paused ? 0 : (Date.now() - gotAt) / 1000);
 
