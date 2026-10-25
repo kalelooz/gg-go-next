@@ -142,7 +142,7 @@ const IN_GAME =['DOTA_GAMERULES_STATE_PRE_GAME', 'DOTA_GAMERULES_STATE_GAME_IN_P
 const settings = { show: true, voice: !DEMO, voice_runes: true, voice_stack: true, voice_roshan: true, icons: false, jokes: true, voice_pick: 'am_michael', role: 'auto', role_filter: true };
 const spoken = new Set();
 const seenEvents = new Set();
-let map = null, gotAt = 0, matchId = null, roshanAt = null, aegisAt = null, voice = null;
+let map = null, gotAt = 0, matchId = null, roshanAt = null, aegisAt = null;
 let myTeam = null, glyphs = newGlyphs(), me = null, aegisMine = false, myId = null, couriers = null, wards = newWards();
 // role: picked in the tray, or guessed (roles.js) from the lane we stand in and STRATZ's position split
 let rolePos = null, roleSplit = null, splitFor = null, lanes = [], roleSince = 0, lastStack = -Infinity;
@@ -169,23 +169,18 @@ const setRow = (id, text, due, tone = null) => {
   r.classList.toggle('good', !due && tone === 'good');
   r.classList.toggle('dim', !due && tone === 'dim');
 };
-// Alerts play recorded clips (voice/<voice>/<clip>.ogg, made by tools/make_voice.py), which sound human.
-// The Windows voice only fills in when a clip is missing. Clips play one after another, like speech did.
+// Alerts play recorded clips (voice/<voice>/<clip>.ogg, made by tools/make_voice.py), one after another.
+// No robotic Windows voice as a backup: voice.test.mjs checks every line the game can ask for is recorded,
+// so a missing clip is a bug to fix, and the row on screen still turns gold.
 const queue = [];
 let playing = null;
-function speak(text) {
-  const u = new SpeechSynthesisUtterance(text);
-  if (voice) u.voice = voice;
-  u.rate = 1.05;
-  speechSynthesis.speak(u);
-}
 function playNext() {
   if (playing || !queue.length) return;
   const { clip, text } = queue.shift();
   const a = playing = new Audio(`voice/${settings.voice_pick}/${clip}.ogg`);
   let failed = false;
   const done = () => { if (playing === a) { playing = null; playNext(); } };
-  const fail = () => { if (failed) return; failed = true; speak(text); done(); };
+  const fail = () => { if (failed) return; failed = true; console.warn(`No voice clip ${settings.voice_pick}/${clip} for "${text}"`); done(); };
   a.onended = done;
   a.onerror = fail;
   a.play().catch(fail);
@@ -199,7 +194,6 @@ function say(key, text, kind, clip, urgent = false) {
     queue.length = 0;
     playing?.pause();
     playing = null;
-    speechSynthesis.cancel();
   }
   queue.push({ clip, text });
   playNext();
@@ -421,14 +415,6 @@ function onEvents(d) {
     }
   }
 }
-
-// Prefer a natural-sounding Windows voice over the default one
-function pickVoice() {
-  const vs = speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
-  voice = vs.find(v => /natural/i.test(v.name)) || vs.find(v => /aria|jenny|guy/i.test(v.name)) || vs[0] || null;
-}
-speechSynthesis.onvoiceschanged = pickVoice;
-pickVoice();
 
 const { listen } = TAURI.event;
 listen('gsi', e => {
