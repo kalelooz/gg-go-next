@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Draft helper</title>
+<script>try { document.documentElement.dataset.theme = localStorage.getItem('theme') || 'dark'; } catch {}</script>
+<style>
+/* STRATZ-style: near-black cards and colour that always means something.
+   Green = good / your side, red = bad / enemy, blue = the field you're typing in, purple = the best grade. */
+:root{--bg:#050505;--panel:#101010;--raised:#1a1a1a;--line:#232323;--edge:#333;--ink:#e8e8e8;--soft:#a3a3a3;--muted:#888;
+  --accent:#35a7e4;--best:#b07cff;--ally:#3fbf5c;--enemy:#eb5a5f;color-scheme:dark}
+:root[data-theme=light]{--bg:#eef0f3;--panel:#fff;--raised:#f3f4f6;--line:#e1e4e8;--edge:#c9ced5;--ink:#15171a;--soft:#50565e;--muted:#646a73;
+  --accent:#0a6aa1;--best:#6f35cc;--ally:#1d7a34;--enemy:#c42f35;color-scheme:light}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font:14px/1.4 Bahnschrift,'Segoe UI',sans-serif;display:flex;flex-direction:column;overflow:hidden;user-select:none}
+/* Dota's UI type is condensed; Bahnschrift's width axis gets close without loading a font */
+h1,h2,.slot .n,.pick b{font-stretch:semi-condensed}
+button{font:inherit;color:inherit;background:var(--raised);border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer}
+button:hover{border-color:var(--edge)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+input{font:inherit;color:var(--ink)}
+input::placeholder{color:var(--muted)}
+img.h{width:52px;height:29px;border-radius:3px;object-fit:cover;background:var(--raised);flex:none;display:block}
+
+header{display:flex;align-items:center;gap:8px;padding:9px 10px 9px 14px;border-bottom:1px solid var(--line);cursor:move}
+header h1{font-size:18px;font-weight:600;margin:0;flex:1}
+header button{padding:4px 10px;font-size:13px}
+.x{border:0;background:transparent;font-size:20px;line-height:1;padding:2px 8px;color:var(--soft)}
+
+.role{display:flex;align-items:center;gap:10px;padding:10px 12px 0}
+.role span{color:var(--soft);white-space:nowrap}
+.seg{display:flex;flex:1}
+.seg button{flex:1;border-radius:0;margin-left:-1px;padding:6px 0;white-space:nowrap}
+.seg button:first-child{border-radius:6px 0 0 6px;margin-left:0}
+.seg button:last-child{border-radius:0 6px 6px 0}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink);position:relative;font-weight:600}
+.seg b{font-weight:600;margin-right:4px}
+
+.teams{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:12px 12px 0}
+.team{--c:var(--enemy);background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden;cursor:text}
+#allyTeam{--c:var(--ally)}
+.team:focus-within{border-color:var(--c)}
+.team h2{display:flex;align-items:baseline;justify-content:space-between;margin:0;padding:7px 10px;font-size:15px;font-weight:600;
+  color:var(--c);background:color-mix(in srgb,var(--c) 12%,var(--panel))}
+.count{font-size:12px;font-weight:400;color:var(--soft);font-variant-numeric:tabular-nums}
+.slot{display:flex;align-items:center;gap:9px;height:36px;padding:0 4px 0 8px;border-top:1px solid var(--line)}
+.slot .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:15px}
+.slot .rm{border:0;background:transparent;padding:4px 8px;color:var(--muted);font-size:17px;line-height:1}
+.slot .rm:hover{color:var(--enemy)}
+.ph{width:52px;height:29px;border-radius:3px;flex:none;border:1px dashed var(--line)}
+.slot.add input{flex:1;min-width:0;height:100%;background:transparent;border:0;padding:0;font-size:15px;outline:none}
+/* the input's own outline is replaced by this ring on the whole row */
+.slot.add:focus-within{background:color-mix(in srgb,var(--accent) 8%,var(--panel));box-shadow:inset 0 0 0 2px var(--accent)}
+.slot.add:focus-within .ph{border-color:var(--accent)}
+.slot.you{color:var(--soft);font-size:13px}
+.slot.you .ph{border-style:solid;display:grid;place-items:center;font-size:11px;color:var(--soft)}
+
+.bans{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:10px 12px 0;padding:7px 8px 7px 10px;background:var(--panel);border:1px solid var(--line);border-radius:8px;cursor:text}
+.bans:focus-within{border-color:var(--soft)}
+.bans h2{font-size:15px;font-weight:600;margin:0 6px 0 0;color:var(--soft)}
+#banList{display:contents}
+.ban{position:relative;padding:0;border:0;border-radius:3px;overflow:hidden}
+.ban img{filter:grayscale(1) brightness(.75)}
+/* red slash = banned, the way Dota marks it */
+.ban::after{content:'';position:absolute;inset:0;background:linear-gradient(to top right,transparent calc(50% - 1px),var(--enemy) calc(50% - 1px) calc(50% + 1px),transparent calc(50% + 1px))}
+.ban:hover img{filter:none}
+#banIn{flex:1;min-width:130px;height:31px;background:var(--raised);border:1px solid var(--line);border-radius:5px;padding:0 9px;outline:none}
+#banIn:focus{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+
+#results{position:fixed;z-index:10;list-style:none;margin:0;padding:4px;background:var(--raised);border:1px solid var(--edge);border-radius:8px;
+  box-shadow:0 10px 24px rgb(0 0 0 / .45)}
+#results:empty{display:none}
+#results li{display:flex;align-items:center;gap:10px;padding:5px 8px;border-radius:5px;cursor:pointer}
+#results li:hover{background:color-mix(in srgb,var(--ink) 6%,transparent)}
+#results li[aria-selected=true]{background:color-mix(in srgb,var(--accent) 20%,var(--raised))}
+#results .nm{flex:1;min-width:0;font-size:15px}
+#results small{color:var(--soft)}
+#results kbd{font:inherit;font-size:11px;color:var(--soft);border:1px solid var(--edge);border-radius:4px;padding:0 5px}
+#results li:not([aria-selected=true]) kbd{display:none}
+
+.sugg{flex:1;display:flex;flex-direction:column;min-height:0;margin-top:10px;border-top:1px solid var(--line)}
+.sugg .top{display:flex;align-items:center;gap:8px;padding:10px 12px 6px}
+.sugg h2{font-size:16px;font-weight:600;margin:0;flex:1}
+.pool button{padding:3px 9px;font-size:13px}
+.pool button[aria-pressed=true]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+#picks{overflow:auto;padding:0 12px 10px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:9px 12px;margin-bottom:8px}
+.pick{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+.pick:first-child{border-top:0}
+.pick>img.h{width:60px;height:34px}
+.pick .main{flex:1;min-width:0}
+.pick .nm{display:flex;align-items:center;gap:6px}
+.pick b{font-weight:600;font-size:16px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.g{font-size:12px;font-weight:700;line-height:18px;padding:0 6px;border-radius:4px;color:var(--bg);background:var(--soft)}
+.g.S{background:var(--best)}.g.A{background:var(--ally)}.g.B{background:var(--accent)}.g.D,.g.F{background:var(--enemy)}
+/* one chip per enemy: their face, your edge over them, and a bar for how big it is */
+.vs{display:flex;gap:4px;margin-top:4px}
+.vs span{display:flex;flex-direction:column;align-items:center;width:36px;font-size:12px;font-variant-numeric:tabular-nums;color:var(--muted)}
+.vs img{width:22px;height:22px;border-radius:50%;object-fit:cover;object-position:30% 0;background:var(--raised)}
+.vs i{display:block;width:26px;height:3px;border-radius:2px;margin-top:1px;background:var(--raised);overflow:hidden}
+.vs i::before{content:'';display:block;height:100%;width:var(--w);background:currentColor}
+.vs span.pos{color:var(--ally)}.vs span.neg{color:var(--enemy)}
+.pick .score{text-align:right;flex:none}
+.pick .score b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
+.pick .score small{display:block;font-size:11px;color:var(--muted);max-width:110px}
+.pos{color:var(--ally)}.neg{color:var(--enemy)}
+.note{color:var(--soft);padding:6px 0;margin:0}
+
+.edge{display:flex;align-items:center;gap:10px}
+.edge strong{font-size:20px;font-variant-numeric:tabular-nums;min-width:52px}
+.edge .bar{flex:1;position:relative;height:8px;border-radius:4px;background:var(--raised)}
+.edge .bar span{position:absolute;top:0;bottom:0;border-radius:4px}
+.edge .bar::after{content:'';position:absolute;left:50%;top:-3px;bottom:-3px;width:2px;background:var(--soft)}
+.edge small,.shape-h small{font-size:11px;color:var(--muted)}
+.shape-h{display:flex;justify-content:space-between;align-items:baseline;margin:8px 0 5px;font-size:13px;font-weight:600}
+.shape{display:grid;grid-template-columns:1fr 104px 1fr;row-gap:5px;align-items:center;font-size:12px}
+.shape .l,.shape .r{height:7px;border-radius:4px;background:var(--raised);overflow:hidden;display:flex}
+.shape .l{justify-content:flex-end}
+.shape .l span{background:var(--ally)}.shape .r span{background:var(--enemy)}
+.shape .m{text-align:center;color:var(--soft)}
+.shape .m b{color:var(--ink)}
+.warn{margin:7px 0 0;font-size:12px;color:var(--ink)}
+.warn b{color:var(--enemy)}
+
+footer{padding:8px 12px 10px;border-top:1px solid var(--line);background:var(--panel);font-size:12px;color:var(--soft);display:flex;flex-direction:column;gap:6px}
+footer:has(#status:empty):has(#tokenRow[hidden]){display:none}
+footer .row{display:flex;gap:6px}
+#token{flex:1;background:var(--raised);border:1px solid var(--line);border-radius:6px;padding:5px 8px}
+#status.err{color:var(--enemy)}
+</style>
+</head>
+<body>
+<header data-tauri-drag-region>
+  <h1 data-tauri-drag-region>Draft helper</h1>
+  <button id="swap" type="button" title="Put your team on the other side, to match where it is in Dota">Swap sides</button>
+  <button id="theme" type="button"></button>
+  <button id="clear" type="button">Clear draft</button>
+  <button class="x" id="close" type="button" aria-label="Hide draft helper">×</button>
+</header>
+
+<div class="role">
+  <span>I'm playing</span>
+  <div class="seg" id="roles" role="group" aria-label="Your position">
+    <button type="button" data-pos="1"><b>1</b>Carry</button>
+    <button type="button" data-pos="2"><b>2</b>Mid</button>
+    <button type="button" data-pos="3"><b>3</b>Off</button>
+    <button type="button" data-pos="4"><b>4</b>Soft sup</button>
+    <button type="button" data-pos="5"><b>5</b>Hard sup</button>
+  </div>
+</div>
+
+<div class="teams">
+  <section class="team" id="enemyTeam" data-side="enemy">
+    <h2>Enemy <span class="count" id="enemyCount"></span></h2>
+    <div id="enemySlots"></div>
+    <label class="slot add" id="enemyAdd"><span class="ph"></span>
+      <input id="enemyIn" autocomplete="off" spellcheck="false" placeholder="Type a hero: am, qop" aria-label="Add an enemy hero"></label>
+    <div id="enemyEmpty"></div>
+  </section>
+  <section class="team" id="allyTeam" data-side="ally">
+    <h2>Your team <span class="count" id="allyCount"></span></h2>
+    <div id="allySlots"></div>
+    <label class="slot add" id="allyAdd"><span class="ph"></span>
+      <input id="allyIn" autocomplete="off" spellcheck="false" placeholder="Type a hero" aria-label="Add a hero to your team"></label>
+    <div id="allyEmpty"></div>
+  </section>
+</div>
+<div class="bans" id="bans" data-side="ban">
+  <h2>Bans <span class="count" id="banCount"></span></h2>
+  <div id="banList"></div>
+  <input id="banIn" autocomplete="off" spellcheck="false" placeholder="Type to ban" aria-label="Ban a hero">
+</div>
+<ul id="results" role="listbox" aria-label="Matching heroes"></ul>
+
+<section class="sugg">
+  <div class="top">
+    <h2 id="suggTitle">Best picks</h2>
+    <div class="pool" role="group" aria-label="Suggest from">
+      <button type="button" data-pool="mine">Heroes you play</button>
+      <button type="button" data-pool="all" id="allBtn">All heroes</button>
+    </div>
+  </div>
+  <div id="picks"></div>
+</section>
+
+<footer>
+  <div class="row" id="tokenRow" hidden>
+    <input id="token" type="password" placeholder="Paste your STRATZ token" aria-label="STRATZ token">
+    <button id="saveToken" type="button">Save</button>
+  </div>
+  <div id="status"></div>
+</footer>
+
+<script type="module">
+import { search, heroById } from './search.js';
+import { suggest, myPool, rolePools, grade, teamShape, draftEdge } from './picks.js';
+
+const BRACKET = 'DIVINE_IMMORTAL', WEEKS = 5;
+// pairs with fewer games than this are too noisy to rank on
+const MIN_MATCHES = 200;
+// a hero counts as yours after this many games in the chosen position
+const MY_MIN_GAMES = 20;
+const ROLE = { 1: 'Carry', 2: 'Mid', 3: 'Offlane', 4: 'Soft support', 5: 'Hard support' };
+const MAX = { enemy: 5, ally: 4, ban: 24 };
+const DRAFT_STATES = ['DOTA_GAMERULES_STATE_HERO_SELECTION', 'DOTA_GAMERULES_STATE_STRATEGY_TIME'];
+const today = new Date().toISOString().slice(0, 10);
+const thisWeek = Math.floor(Date.now() / 1000 / 604800);
+const { invoke } = window.__TAURI__.core;
+const { listen } = window.__TAURI__.event;
+const win = window.__TAURI__.window.getCurrentWindow();
+
+const $ = id => document.getElementById(id);
+const SIDES = ['enemy', 'ally', 'ban'];
+const field = side => $(side + 'In');
+const store = {
+  get: k => { try { return localStorage.getItem(k); } catch { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
+};
+
+const state = {
+  enemy: [], ally: [], ban: [], target: 'enemy', results: [], sel: 0,
+  pos: Number(store.get('pos')) || 5, pool: store.get('pool') || 'mine',
+};
+const matchups = new Map();     // heroId -> { vs: Map, with: Map } or null while loading
+const myHeroes = {};            // pos -> [{ hero_id, games, win }]
+let roles = null;               // pos -> [heroId] from STRATZ
+let accountId = store.get('accountId');
+let lastMatch = null, hiddenFor = null, sidesFor = null;
+
+const status = (text, err = false) => { $('status').textContent = text; $('status').classList.toggle('err', err); };
+const taken = () => new Set([...state.enemy, ...state.ally, ...state.ban]);
+const img = h => `<img class="h" src="${h.img}" alt="" loading="lazy">`;
+const fmtPts = v => (v > 0 ? '+' : '') + v.toFixed(1);
+
+// --- STRATZ ---
+// Saved to a file by the Rust side; older versions kept it in localStorage, which can lose it
+let stratzToken = (await invoke('load_token').catch(() => null)) || store.get('stratzToken');
+if (stratzToken) invoke('save_token', { token: stratzToken }).catch(() => {});
+function token() {
+  $('tokenRow').hidden = !!stratzToken;
+  // keep a STRATZ error on screen instead of covering it with the how-to
+  if (!stratzToken && !$('status').classList.contains('err')) status('Counter picks need a free STRATZ token. Log in with Steam at stratz.com/api, copy the Default Token and paste it here.');
+  return stratzToken;
+}
+async function stratz(query) {
+  const t = token();
+  if (!t) throw new Error('no token');
+  let res;
+  try { res = JSON.parse(await invoke('stratz', { token: t, query })); }
+  catch (e) {
+    // STRATZ refused the token, so ask for it again
+    if (/said 40[13]/.test(e)) { stratzToken = null; token(); }
+    throw new Error(String(e));
+  }
+  if (!res?.data) throw new Error(res?.errors?.[0]?.message || 'STRATZ sent no data');
+  return res.data;
+}
+
+async function loadMatchup(id) {
+  if (matchups.has(id)) return;
+  const key = `mu:${id}:${today}`;
+  const cached = store.get(key);
+  if (cached) { setMatchup(id, JSON.parse(cached)); return; }
+  if (!token()) return;
+  matchups.set(id, null);
+  // One week at one bracket is too few games per pair, so ask for the last WEEKS weeks at once.
+  // STRATZ's `week` is the unix time the week starts.
+  const parts = Array.from({ length: WEEKS }, (_, i) =>
+    `w${i}: matchUp(heroId: ${id}, week: ${(thisWeek - i) * 604800}, bracketBasicIds: [${BRACKET}], take: 200) {
+      vs { heroId2 synergy matchCount } with { heroId2 synergy matchCount } }`).join('\n');
+  try {
+    const weeks = Object.values((await stratz(`{ heroStats { ${parts} } }`)).heroStats).map(w => w?.[0]).filter(Boolean);
+    if (!weeks.length) throw new Error('no matchup data');
+    // average each pair's edge across weeks, weighted by games
+    const merge = side => {
+      const acc = new Map();
+      for (const w of weeks) for (const x of w[side]) {
+        const a = acc.get(x.heroId2) || [0, 0];
+        acc.set(x.heroId2, [a[0] + x.synergy * x.matchCount, a[1] + x.matchCount]);
+      }
+      return [...acc].filter(([, [, n]]) => n >= MIN_MATCHES).map(([c, [s, n]]) => [c, s / n]);
+    };
+    // STRATZ "vs" is this hero's edge over the other; flip it to get the other hero's edge over this one
+    const data = { vs: merge('vs').map(([c, v]) => [c, -v]), with: merge('with') };
+    store.set(key, JSON.stringify(data));
+    setMatchup(id, data);
+    status(`Counters from STRATZ: Divine and Immortal games, last ${WEEKS} weeks.`);
+  } catch (e) {
+    matchups.delete(id);
+    status(`Couldn't load matchups for ${heroById[id].name}: ${e.message || e}`, true);
+  }
+}
+function setMatchup(id, d) { matchups.set(id, { vs: new Map(d.vs), with: new Map(d.with) }); renderPicks(); }
+
+async function loadRoles() {
+  const key = `roles:${thisWeek}`;
+  const cached = store.get(key);
+  if (cached) { roles = JSON.parse(cached); renderPicks(); return; }
+  if (!token()) return;
+  const parts = [1, 2, 3, 4, 5].map(n =>
+    `p${n}: winWeek(take: 1, positionIds: [POSITION_${n}], bracketIds: [DIVINE, IMMORTAL]) { heroId matchCount }`).join(' ');
+  try {
+    const d = (await stratz(`{ heroStats { ${parts} } }`)).heroStats;
+    roles = rolePools({ 1: d.p1, 2: d.p2, 3: d.p3, 4: d.p4, 5: d.p5 });
+    store.set(key, JSON.stringify(roles));
+    renderPicks();
+  } catch (e) { status(`Couldn't load hero roles: ${e.message || e}`, true); }
+}
+
+async function loadMine(pos) {
+  if (!accountId || myHeroes[pos]) return;
+  const key = `mine:${pos}:${accountId}:${today}`;
+  const cached = store.get(key);
+  if (cached) { myHeroes[pos] = JSON.parse(cached); renderPicks(); return; }
+  if (!token()) return;
+  myHeroes[pos] = null;
+  try {
+    const d = await stratz(`{ player(steamAccountId: ${accountId}) {
+      heroesPerformance(request: { positionIds: [POSITION_${pos}], take: 5000 }, take: 150) { heroId matchCount winCount } } }`);
+    // an empty answer means STRATZ didn't find the account or timed out, not that you never played the role,
+    // so don't cache it as "no games" for the rest of the day
+    const list = d.player?.heroesPerformance;
+    if (!list?.length) throw new Error('STRATZ sent no games for your account, try again in a minute');
+    myHeroes[pos] = list.map(h => ({ hero_id: h.heroId, games: h.matchCount, win: h.winCount }));
+    store.set(key, JSON.stringify(myHeroes[pos]));
+    renderPicks();
+  } catch (e) {
+    delete myHeroes[pos];
+    status(`Couldn't load your ${ROLE[pos]} games: ${e.message || e}`, true);
+  }
+}
+
+// --- actions ---
+// The field to type in next: the first one that still has room
+const nextOpen = (from = 'enemy') => SIDES.slice(SIDES.indexOf(from)).concat(SIDES).find(s => state[s].length < MAX[s]);
+function focusSide(side) { const s = nextOpen(side); if (s) field(s).focus(); }
+function add(side, hero) {
+  const list = state[side];
+  if (list.length >= MAX[side] || taken().has(hero.id)) return;
+  list.push(hero.id);
+  if (side !== 'ban') loadMatchup(hero.id);
+  field(side).value = ''; state.results = []; state.sel = 0;
+  render();
+  // a full team hides its field, so carry on in the next one (5th enemy goes to your team)
+  if (list.length >= MAX[side]) focusSide(side);
+}
+function remove(side, id) { state[side] = state[side].filter(x => x !== id); render(); field(side).focus(); }
+function clearDraft() {
+  state.enemy = []; state.ally = []; state.ban = [];
+  SIDES.forEach(s => field(s).value = '');
+  state.results = []; render(); field('enemy').focus();
+}
+// one role for the whole app: these buttons and the tray's Role menu set the same setting
+function setPos(n, fromSettings = false) {
+  state.pos = n; store.set('pos', n); loadMine(n); render();
+  if (!fromSettings) invoke('set_setting', { id: 'role', value: String(n) }).catch(() => {});
+}
+function setTheme(t) {
+  document.documentElement.dataset.theme = t; store.set('theme', t);
+  $('theme').textContent = t === 'dark' ? 'Light theme' : 'Dark theme';
+}
+
+function refresh(side) { state.target = side; state.results = search(field(side).value, taken()); state.sel = 0; renderResults(); }
+for (const side of SIDES) {
+  const f = field(side);
+  f.setAttribute('role', 'combobox');
+  f.setAttribute('aria-controls', 'results');
+  f.setAttribute('aria-autocomplete', 'list');
+  f.addEventListener('focus', () => refresh(side));
+  f.addEventListener('input', () => refresh(side));
+  f.addEventListener('blur', () => { state.results = []; renderResults(); });
+  f.addEventListener('keydown', e => {
+    const n = state.results.length;
+    if (e.key === 'ArrowDown' && n) { state.sel = (state.sel + 1) % n; renderResults(); e.preventDefault(); }
+    else if (e.key === 'ArrowUp' && n) { state.sel = (state.sel - 1 + n) % n; renderResults(); e.preventDefault(); }
+    else if (e.key === 'Enter' && n) { add(side, state.results[state.sel].hero); e.preventDefault(); }
+    else if (e.key === 'Backspace' && !f.value && state[side].length) { state[side].pop(); render(); }
+    else if (e.key === 'Escape') { if (n) { state.results = []; renderResults(); } else f.value = ''; }
+  });
+}
+// clicking anywhere on a team or the ban row (not on a hero) goes to its field
+['enemyTeam', 'allyTeam', 'bans'].forEach(id => $(id).addEventListener('mousedown', e => {
+  const s = $(id).dataset.side;
+  if (e.target.closest('button, input') || state[s].length >= MAX[s]) return;
+  e.preventDefault(); field(s).focus();
+}));
+addEventListener('resize', () => { state.results = []; renderResults(); });
+document.querySelectorAll('[data-pos]').forEach(b => b.onclick = () => setPos(Number(b.dataset.pos)));
+document.querySelectorAll('[data-pool]').forEach(b => b.onclick = () => { state.pool = b.dataset.pool; store.set('pool', state.pool); renderPicks(); });
+// Your team's column can sit left or right to match your side in Dota's draft screen.
+// The sections move in the page (not just visually) so Tab still goes left to right.
+let allyLeft = store.get('allyLeft') === '1';
+function placeSides() { $('enemyTeam').parentNode.prepend($(allyLeft ? 'allyTeam' : 'enemyTeam')); }
+$('swap').onclick = () => {
+  const typing = document.activeElement;
+  allyLeft = !allyLeft; store.set('allyLeft', allyLeft ? '1' : '0');
+  placeSides();
+  if (typing?.matches('.slot input')) typing.focus();   // moving a section drops its focus
+};
+placeSides();
+$('theme').onclick = () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+$('clear').onclick = clearDraft;
+$('close').onclick = () => win.hide();
+$('saveToken').onclick = async () => {
+  const t = $('token').value.trim();
+  if (!t) { status('Paste the token first.', true); return; }
+  try { await invoke('save_token', { token: t }); }
+  catch (e) { status(`Couldn't save the token: ${e}`, true); return; }
+  stratzToken = t; $('token').value = '';
+  token(); status('Token saved.');
+  loadRoles(); loadMine(state.pos); [...state.enemy, ...state.ally].forEach(loadMatchup);
+};
+
+// --- render ---
+// Filled heroes, then the static field (so typing focus survives re-renders), then empty slots
+function renderTeam(side) {
+  const ids = state[side], full = ids.length >= MAX[side];
+  $(side + 'Slots').innerHTML = ids.map(id => {
+    const h = heroById[id];
+    return `<div class="slot">${img(h)}<span class="n">${h.name}</span><button class="rm" type="button" data-side="${side}" data-id="${id}" aria-label="Remove ${h.name}">×</button></div>`;
+  }).join('');
+  $(side + 'Add').hidden = full;
+  $(side + 'Empty').innerHTML = '<div class="slot"><span class="ph"></span></div>'.repeat(Math.max(0, MAX[side] - ids.length - 1)) +
+    (side === 'ally' ? `<div class="slot you"><span class="ph">You</span>${ROLE[state.pos]}</div>` : '');
+  $(side + 'Count').textContent = `${ids.length}/${MAX[side]}`;
+}
+
+function renderBans() {
+  $('banList').innerHTML = state.ban.map(id =>
+    `<button type="button" class="ban" data-side="ban" data-id="${id}" aria-label="Remove ban ${heroById[id].name}" title="${heroById[id].name}, click to unban">${img(heroById[id])}</button>`).join('');
+  $('banIn').hidden = state.ban.length >= MAX.ban;
+  $('banIn').placeholder = state.ban.length ? 'Ban another' : 'Type to ban, keeps them out of suggestions';
+  $('banCount').textContent = state.ban.length || '';
+}
+
+function renderResults() {
+  const el = $('results'), side = state.target;
+  el.innerHTML = state.results.map((r, i) =>
+    `<li role="option" id="opt${i}" aria-selected="${i === state.sel}" data-i="${i}">${img(r.hero)}<span class="nm">${r.hero.name}${r.via ? ` <small>${r.via}</small>` : ''}</span><kbd>Enter</kbd></li>`).join('');
+  el.querySelectorAll('li').forEach(li => li.onmousedown = e => { e.preventDefault(); add(side, state.results[Number(li.dataset.i)].hero); });
+  const open = state.results.length > 0;
+  SIDES.forEach(s => {
+    field(s).setAttribute('aria-expanded', open && s === side);
+    if (open && s === side) field(s).setAttribute('aria-activedescendant', `opt${state.sel}`); else field(s).removeAttribute('aria-activedescendant');
+  });
+  if (!open) return;
+  // sit under the field being typed in, or above it when there's no room below
+  const f = field(side), r = (f.closest('.slot') || f).getBoundingClientRect();
+  const w = Math.min(Math.max(r.width, 260), innerWidth - 16), h = el.offsetHeight;
+  el.style.width = w + 'px';
+  el.style.left = Math.max(8, Math.min(r.left, innerWidth - w - 8)) + 'px';
+  el.style.top = (innerHeight - r.bottom >= h + 8 ? r.bottom + 4 : Math.max(8, r.top - h - 4)) + 'px';
+}
+
+function pickList() {
+  const mine = myHeroes[state.pos];
+  if (state.pool === 'mine') {
+    if (!accountId) return { note: 'Your hero history loads once Dota is running. Showing all heroes for this role.', ids: roles?.[state.pos] };
+    if (mine === undefined || mine === null) return { loading: true };
+    const ids = myPool(mine, MY_MIN_GAMES);
+    const total = mine.reduce((s, h) => s + h.games, 0);
+    if (ids.length < 3) return { note: `You have ${total} games at ${ROLE[state.pos]} and only ${ids.length} heroes with ${MY_MIN_GAMES}+, so these are all ${ROLE[state.pos].toLowerCase()} heroes.`, ids: roles?.[state.pos] };
+    return { ids };
+  }
+  return { ids: roles?.[state.pos] };
+}
+
+function renderPicks() {
+  $('suggTitle').textContent = `Best picks at ${ROLE[state.pos]}`;
+  $('allBtn').textContent = `All ${ROLE[state.pos].toLowerCase()} heroes`;
+  document.querySelectorAll('[data-pool]').forEach(b => b.setAttribute('aria-pressed', b.dataset.pool === state.pool));
+  const el = $('picks');
+  if (!state.enemy.length && !state.ally.length) {
+    el.innerHTML = token() ? '<p class="note">Add the enemy heroes as they get picked. Suggestions appear after the first one.</p>' : '';
+    return;
+  }
+  if (!token()) { el.innerHTML = teamCard(null); return; }
+  const list = pickList();
+  if (list.loading || !list.ids || ![...state.enemy, ...state.ally].some(id => matchups.get(id))) {
+    el.innerHTML = teamCard(null) + '<p class="note">Loading matchups…</p>'; return;
+  }
+  const mine = Object.fromEntries((myHeroes[state.pos] || []).map(h => [Number(h.hero_id), h]));
+  // skip heroes missing from heroes.js (a brand-new hero) instead of breaking the whole list
+  const best = suggest({ candidates: list.ids.filter(id => heroById[id]), enemies: state.enemy, allies: state.ally, taken: taken(),
+    vsOf: id => matchups.get(id)?.vs, withOf: id => matchups.get(id)?.with });
+  el.innerHTML = (list.note ? `<p class="note">${list.note}</p>` : '') + '<div class="card">' + best.map(p => {
+    const h = heroById[p.id], g = grade(p), m = mine[p.id];
+    const chips = state.enemy.map(e => {
+      const x = p.vs.find(v => v.id === e), eh = heroById[e];
+      return x
+        ? `<span class="${x.v >= 0 ? 'pos' : 'neg'}" title="${h.name} vs ${eh.name}: ${fmtPts(x.v)}"><img src="${eh.img}" alt="">${fmtPts(x.v)}<i style="--w:${Math.min(100, Math.abs(x.v) * 20)}%"></i></span>`
+        : `<span title="${h.name} vs ${eh.name}: no data yet"><img src="${eh.img}" alt="">?<i style="--w:0"></i></span>`;
+    }).join('');
+    const side = m?.games ? `you: ${m.games} games, ${Math.round(100 * m.win / m.games)}% won`
+      : p.withSum > 0.5 ? `works with your team ${fmtPts(p.withSum)}` : '';
+    return `<div class="pick">${img(h)}<div class="main"><div class="nm"><b>${h.name}</b>${g ? `<span class="g ${g}" title="Grade from its average edge per enemy">${g}</span>` : ''}</div>
+      <div class="vs">${chips}</div></div>
+      <div class="score"><b class="${p.score >= 0 ? 'pos' : 'neg'}">${fmtPts(p.score)}</b><small>${side}</small></div></div>`;
+  }).join('') + '</div>' + teamCard(best);
+}
+
+// Draft edge (needs matchups) and team shape (works from hero roles alone)
+function teamCard(best) {
+  const edge = draftEdge(state.ally, state.enemy, id => matchups.get(id)?.vs);
+  const half = edge == null ? 0 : Math.min(50, Math.abs(edge) * 2.5);
+  const edgeRow = edge == null
+    ? '<div class="edge"><strong>Draft edge</strong><small>shows once both teams have a hero</small></div>'
+    : `<div class="edge"><strong class="${edge >= 0 ? 'pos' : 'neg'}">${fmtPts(edge)}</strong>
+      <div class="bar" title="Your picks' summed edge over theirs. From matchups, not a win chance."><span style="left:${edge >= 0 ? 50 : 50 - half}%;width:${half}%;background:var(--${edge >= 0 ? 'ally' : 'enemy'})"></span></div>
+      <small>draft edge</small></div>`;
+  const ours = teamShape(state.ally.map(id => heroById[id])), theirs = teamShape(state.enemy.map(id => heroById[id]));
+  const w = n => Math.min(100, n * 20) + '%';
+  const rows = ours.map((o, i) => `<div class="l"><span style="width:${w(o.n)}"></span></div>
+    <div class="m"><b>${o.n}</b> ${o.label} <b>${theirs[i].n}</b></div><div class="r"><span style="width:${w(theirs[i].n)}"></span></div>`).join('');
+  // flag the first of stuns, initiation, frontline that they have and you don't
+  const gap = ours.slice(0, 3).find((o, i) => o.n === 0 && theirs[i].n >= 2);
+  const fill = gap && best?.find(p => heroById[p.id].roles.includes(gap.role));
+  const warn = gap ? `<p class="warn">You have <b>no ${gap.label.toLowerCase()}</b> yet, they have ${theirs[ours.indexOf(gap)].n}.${fill ? ` ${heroById[fill.id].name} adds it.` : ''}</p>` : '';
+  return `<div class="card">${edgeRow}<div class="shape-h">Team shape<small>your picks vs theirs, from hero roles</small></div>
+    <div class="shape">${rows}</div>${warn}</div>`;
+}
+
+function render() {
+  document.querySelectorAll('[data-pos]').forEach(b => b.setAttribute('aria-pressed', Number(b.dataset.pos) === state.pos));
+  renderTeam('enemy');
+  renderTeam('ally');
+  renderBans();
+  document.querySelectorAll('.slot .rm, .ban').forEach(b => b.onclick = () => remove(b.dataset.side, Number(b.dataset.id)));
+  renderResults();
+  renderPicks();
+  // the overlay reads these for its matchup item hints (same origin, so localStorage is shared)
+  store.set('draftEnemies', JSON.stringify({ at: Date.now(), ids: state.enemy }));
+}
+
+// Opens itself when a draft starts and hides once per match when the game starts
+invoke('get_settings').then(s => { if (/^[1-5]$/.test(s?.role)) setPos(Number(s.role), true); }).catch(() => {});
+listen('settings', e => { const [id, v] = e.payload; if (id === 'role' && /^[1-5]$/.test(v)) setPos(Number(v), true); });
+listen('gsi', e => {
+  let d; try { d = JSON.parse(e.payload); } catch { return; }
+  const acc = d.player?.accountid;
+  if (acc && acc !== accountId) { accountId = acc; store.set('accountId', acc); for (const k in myHeroes) delete myHeroes[k]; loadMine(state.pos); }
+  const gs = d.map?.game_state;
+  if (!gs) return;
+  if (DRAFT_STATES.includes(gs)) {
+    if (d.map.matchid !== lastMatch) { lastMatch = d.map.matchid; clearDraft(); win.show(); win.setFocus(); }
+    // once per draft, put your team on your side: Dota draws Radiant on the left. Swap sides still overrides it.
+    const team = d.player?.team_name;
+    if (team && sidesFor !== d.map.matchid) {
+      sidesFor = d.map.matchid;
+      allyLeft = team === 'radiant'; store.set('allyLeft', allyLeft ? '1' : '0');
+      placeSides(); field('enemy').focus();
+    }
+  } else if (gs === 'DOTA_GAMERULES_STATE_PRE_GAME' && lastMatch && hiddenFor !== lastMatch) {
+    hiddenFor = lastMatch;
+    win.hide();
+  }
+});
+
+setTheme(document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
+if (token()) { loadRoles(); loadMine(state.pos); }
+render();
+field('enemy').focus();
+</script>
+</body>
+</html>

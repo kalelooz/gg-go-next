@@ -1,0 +1,13 @@
+{
+  "name": "dota-helper",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "scripts": {
+    "tauri": "tauri",
+    "test": "node src/timers.test.mjs && node src/summary.test.mjs"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2"
+  }
+}

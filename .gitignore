@@ -1,0 +1,12 @@
+# build output
+node_modules/
+target*/
+app/src-tauri/src-tauri/
+app/src-tauri/gen/
+*.pdb
+
+# the installed copy and its game-feed logs (large, and personal match data)
+Dota Helper/
+
+# error log left by a game-file extraction tool, not used by the app
+app/src/exceptions.txt

@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dota Helper</title>
+<style>
+html,body{margin:0;height:100%;background:transparent;overflow:hidden}
+body{font-family:Bahnschrift,'Segoe UI',sans-serif;font-stretch:semi-condensed;color:#fff;
+  text-shadow:0 1px 2px #000,0 0 2px #000,0 0 1px #000;user-select:none}
+/* window is sized from the monitor height, so vw scales the text with the screen */
+/* one right-aligned column: status strip on top, then a timer per row. Rows sit faint and
+   turn gold when due, so the eye only goes to what needs action now. */
+#hud{position:absolute;right:5vw;top:1.5vw;font-size:3.8vw;line-height:1.5;visibility:hidden}
+#hud.on{visibility:visible}
+/* label (or icon) on the left edge, time on the right edge: both columns stay lined up whatever the text length */
+.row{display:flex;align-items:center;justify-content:space-between;gap:.6em;height:1.6em;white-space:nowrap;color:rgb(255 255 255 / .68)}
+/* icons stay a little brighter than the text so they read at a glance */
+.row .ic{opacity:.85}
+.row>span:first-child{display:flex;align-items:center;width:7em}
+/* min-width, not width: a long line (Roshan's respawn window) grows the row instead of running into the label */
+.row>span:last-child{min-width:9.5em;text-align:right;font-variant-numeric:tabular-nums}
+.row[hidden]{display:none}
+/* green: good for you now (Roshan up, enemy glyph down, your Aegis); dim: nothing to do yet */
+.row.good{color:#4fd36b;font-weight:600}
+.row.dim{color:rgb(255 255 255 / .45)}
+.row.due{color:#FFD24A;font-weight:600}
+.row.due .ic{opacity:1}
+#err{position:absolute;right:5vw;bottom:2vw;font-size:3vw;color:#ff8a7a}
+
+/* always-on strip: day/night, TP, buyback. Green ready, grey cooldown, red missing.
+   contain: a long status line spills left instead of widening the panel and shifting the rows */
+#status{display:flex;justify-content:flex-end;gap:1.1em;font-size:.82em;font-weight:600;white-space:nowrap;contain:inline-size;
+  padding-bottom:.4em;margin-bottom:.35em;border-bottom:1px solid rgb(255 255 255 / .18)}
+#status>span>span{display:flex;align-items:center;gap:.4em}
+#status>span:empty{display:none}
+.ic{display:inline-flex;width:1.35em;height:1.35em;flex:none}
+.row .ic{width:1.5em;height:1.5em}
+/* game icons are cut-outs, so they get a drop shadow instead of a box to stay readable on any terrain */
+.ic img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 1px 1px #000) drop-shadow(0 0 2px #000)}
+.ic img.sq{object-fit:cover;border-radius:.18em;filter:none;box-shadow:0 0 0 1px #000c,0 1px 3px #000}
+.ok{color:#4fd36b}.bad{color:#ff6b6b}.off{color:#c4c4c4}
+.ok .sq{box-shadow:0 0 0 .1em #4fd36b,0 1px 3px #000}
+.bad .sq{box-shadow:0 0 0 .1em #ff6b6b,0 1px 3px #000}
+.off .sq{box-shadow:0 0 0 .1em #777,0 1px 3px #000}
+.bad img,.off img{filter:grayscale(1) brightness(.8)}
+/* text view shows the words, icon view shows Dota's icons; switched from the tray menu */
+.row .ic{display:none}
+.icons .row .ic{display:inline-flex}
+.icons .row .lbl{display:none}
+/* no Dota icon for this one, so it keeps its words in icon view */
+.icons .row.noicon .lbl{display:inline}
+/* role switched off for this part (Customize: fit the overlay to my role) */
+.roleoff{display:none!important}
+#roleline{font-size:.7em;text-align:right;color:rgb(255 255 255 / .55);margin:-.2em 0 .25em;white-space:nowrap;contain:inline-size;transition:color .4s}
+#roleline.fresh{color:#FFD24A}
+.icons .row>span:first-child{width:auto}
+.icons .row>span:last-child{min-width:7em}
+/* ward line: words in both views, spills left instead of widening the panel */
+#wards{display:flex;justify-content:unsafe flex-end;gap:.4em;margin-top:.35em;padding-top:.4em;border-top:1px solid rgb(255 255 255 / .18);
+  font-size:.82em;white-space:nowrap;contain:inline-size;color:rgb(255 255 255 / .68)}
+#wards b{color:#fff;font-weight:600}
+#wards .due{color:#FFD24A;font-weight:600}
+#wards .quip{font-style:italic;color:rgb(255 255 255 / .8)}
+/* what players on your hero finish around now, one per line like Dota's shop suggestions */
+#items{margin-top:.5em;padding:.35em .5em .4em;background:rgb(0 0 0 / .35);border:1px solid rgb(255 255 255 / .12);border-radius:4px;font-size:.82em}
+#items .ih{display:flex;justify-content:space-between;font-size:.78em;letter-spacing:.12em;text-transform:uppercase;color:rgb(255 255 255 / .55);margin-bottom:.2em}
+#items .it{display:flex;align-items:center;gap:.5em;height:1.75em;white-space:nowrap}
+#items img{height:1.35em;width:1.85em;object-fit:cover;border-radius:2px;box-shadow:0 0 0 1px #000c,0 1px 3px #000}
+#items .nm{flex:1;color:#fff;font-weight:600}
+#items .wr{font-variant-numeric:tabular-nums;font-weight:600}
+/* matchup hints: a sentence each, so they wrap inside the panel */
+#items .ih.vs{margin-top:.35em}
+#items .hint{height:auto;align-items:flex-start;padding:.15em 0}
+#items .hint .nm{white-space:normal;font-weight:400;line-height:1.25;color:rgb(255 255 255 / .9)}
+#items .hint.skip img{filter:grayscale(1) brightness(.7)}
+[hidden]{display:none!important}
+/* parts switched off in the Customize window; they slide out, and back in when switched on */
+.off{display:none!important}
+.leave{opacity:0;transform:translateX(.8em);transition:opacity .25s,transform .25s}
+@keyframes arrive{from{opacity:0;transform:translateX(.8em)}}
+.arrive{animation:arrive .3s ease-out}
+/* the Customize window's preview points at the part you're hovering */
+@keyframes hl{50%{outline-color:rgb(255 210 74 / .35)}}
+.hl{outline:2px solid #FFD24A;outline-offset:3px;border-radius:3px;animation:hl 1.2s infinite}</style>
+</head>
+<body>
+<div id="hud">
+  <div id="status"><span id="dn"></span><span id="tp"></span><span id="bb"></span><span id="cr"></span></div>
+  <div id="roleline"></div>
+  <div class="row noicon" id="water"><span><i class="ic"></i><b class="lbl">Water runes</b></span><span></span></div>
+  <div class="row" id="power"><span><i class="ic"></i><b class="lbl">Power rune</b></span><span></span></div>
+  <div class="row" id="bounty"><span><i class="ic"></i><b class="lbl">Bounty runes</b></span><span></span></div>
+  <div class="row" id="wisdom"><span><i class="ic"></i><b class="lbl">Wisdom shrines</b></span><span></span></div>
+  <div class="row" id="lotus"><span><i class="ic"></i><b class="lbl">Lotus pools</b></span><span></span></div>
+  <div class="row" id="stack"><span><i class="ic"></i><b class="lbl">Stack camps</b></span><span></span></div>
+  <div class="row" id="roshan"><span><i class="ic"></i><b class="lbl">Roshan</b></span><span></span></div>
+  <div class="row" id="aegis" hidden><span><i class="ic"></i><b class="lbl">Aegis</b></span><span></span></div>
+  <div class="row" id="tormentor"><span><i class="ic"></i><b class="lbl">Tormentor</b></span><span></span></div>
+  <div class="row" id="glyph_enemy"><span><i class="ic"></i><b class="lbl">Enemy glyph</b></span><span></span></div>
+  <div class="row" id="glyph_ours" hidden><span><i class="ic"></i><b class="lbl">Our glyph</b></span><span></span></div>
+  <div id="wards" hidden></div>
+  <div id="items" hidden></div>
+</div>
+<div id="err"></div>
+
+<script type="module">
+import { SCHEDULES, untilNext, untilStack, fmt, roshan, pits, AEGIS, TORMENTOR_AT,
+  buildingLost, newGlyphs, glyphLoss, glyphUsed, glyphIn, dayNight, tpStatus, buybackStatus, courierStatus, newWards, trackWards, wardsLeft, wardLine, pickQuip, NO_TP, BUYBACK_SHORT, ROSH_LONELY } from './timers.js';
+import { itemsNow } from './items.js';
+import { ROLE_NAMES, roleView, voiced, laneAt, guessRole } from './roles.js';
+import { matchupHints } from './matchups.js';
+import { HEROES } from './heroes.js';
+
+// ?demo runs on a made-up game for the Customize window's preview, with no Tauri behind it
+const DEMO = new URLSearchParams(location.search).has('demo');
+const TAURI = DEMO ? (await import('./demo.js')).tauri : window.__TAURI__;
+
+// Dota's own HUD icons, extracted from the game files into icons/ (see docs/icons.md).
+// "sq" ones are square item art; the rest have transparent backgrounds.
+const icon = (name, sq = false) => `<img src="icons/${name}.png" alt=""${sq ? ' class="sq"' : ''}>`;
+const ICON = {
+  power: icon('power'), bounty: icon('bounty'), wisdom: icon('wisdom'), lotus: icon('lotus'), stack: icon('stack'),
+  roshan: icon('roshan'), aegis: icon('aegis'), tormentor: icon('tormentor_radiant'),
+  day: icon('day'), night: icon('night'), night_stalker: icon('night_stalker', true),
+  tp: icon('tp', true), buyback: icon('buyback', true),
+};
+for (const [id, html] of Object.entries(ICON)) {
+  const slot = document.querySelector(`#${id} .ic`);
+  if (slot) slot.innerHTML = html;
+}
+// each glyph row shows that team's own glyph button, once we know which team we're on
+function glyphIcons() {
+  const enemy = myTeam === 'radiant' ? 'dire' : 'radiant';
+  document.querySelector('#glyph_enemy .ic').innerHTML = icon('glyph_' + enemy);
+  document.querySelector('#glyph_ours .ic').innerHTML = icon('glyph_' + (myTeam || 'radiant'));
+}
+
+const DUE = 15, MOVE_WARN = 30, RUNE_WARN = 20, STACK_WARN = 5;
+const SAY_NAME = { water: 'water runes', power: 'power rune', bounty: 'bounty', wisdom: 'wisdom', lotus: 'lotus' };
+const listOf = xs => (xs.length < 2 ? xs[0] : xs.slice(0, -1).join(', ') + ' and ' + xs.at(-1));
+const IN_GAME =['DOTA_GAMERULES_STATE_PRE_GAME', 'DOTA_GAMERULES_STATE_GAME_IN_PROGRESS'];
+const settings = { show: true, voice: !DEMO, voice_runes: true, voice_stack: true, voice_roshan: true, icons: false, jokes: true, voice_pick: 'am_michael', role: 'auto', role_filter: true };
+const spoken = new Set();
+const seenEvents = new Set();
+let map = null, gotAt = 0, matchId = null, roshanAt = null, aegisAt = null, voice = null;
+let myTeam = null, glyphs = newGlyphs(), me = null, aegisMine = false, myId = null, couriers = null, wards = newWards();
+// role: picked in the tray, or guessed (roles.js) from the lane we stand in and STRATZ's position split
+let rolePos = null, roleSplit = null, splitFor = null, lanes = [], roleSince = 0, lastStack = -Infinity;
+const pos = () => (settings.role_filter ? rolePos : null);
+function updateRole() {
+  const pick = settings.role === 'auto' ? guessRole(roleSplit, lanes.map(l => l.lane), myTeam) : Number(settings.role) || null;
+  if (pick === rolePos) return;
+  rolePos = pick; roleSince = Date.now();
+  if (me?.hero?.id > 0) loadItems(me.hero.id);
+}
+// part shown, faded or hidden for our role
+function fitRole(id) {
+  const v = roleView(id, pos());
+  document.getElementById(id)?.classList.toggle('roleoff', v === 'hide');
+  return v;
+}
+
+const hud = document.getElementById('hud');
+// tone: 'good' (green) or 'dim'; due (gold) wins over both
+const setRow = (id, text, due, tone = null) => {
+  const r = document.getElementById(id);
+  r.lastElementChild.textContent = text;
+  r.classList.toggle('due', due);
+  r.classList.toggle('good', !due && tone === 'good');
+  r.classList.toggle('dim', !due && tone === 'dim');
+};
+// Alerts play recorded clips (voice/<voice>/<clip>.ogg, made by tools/make_voice.py), which sound human.
+// The Windows voice only fills in when a clip is missing. Clips play one after another, like speech did.
+const queue = [];
+let playing = null;
+function speak(text) {
+  const u = new SpeechSynthesisUtterance(text);
+  if (voice) u.voice = voice;
+  u.rate = 1.05;
+  speechSynthesis.speak(u);
+}
+function playNext() {
+  if (playing || !queue.length) return;
+  const { clip, text } = queue.shift();
+  const a = playing = new Audio(`voice/${settings.voice_pick}/${clip}.ogg`);
+  let failed = false;
+  const done = () => { if (playing === a) { playing = null; playNext(); } };
+  const fail = () => { if (failed) return; failed = true; speak(text); done(); };
+  a.onended = done;
+  a.onerror = fail;
+  a.play().catch(fail);
+}
+// urgent lines (the stack pull) cut ahead of anything still queued
+function say(key, text, kind, clip, urgent = false) {
+  if (spoken.has(key)) return;
+  spoken.add(key);
+  if (!settings.voice || !settings[kind]) return;
+  if (urgent) {
+    queue.length = 0;
+    playing?.pause();
+    playing = null;
+    speechSynthesis.cancel();
+  }
+  queue.push({ clip, text });
+  playNext();
+}
+
+function tick() {
+  const fresh = map && Date.now() - gotAt < 15000;
+  hud.classList.toggle('on', settings.show && fresh && IN_GAME.includes(map.game_state));
+  if (!fresh) return;
+  // GSI only sends every ~0.5s, so run the clock locally between payloads
+  const t = map.clock_time + (map.paused ? 0 : (Date.now() - gotAt) / 1000);
+
+  // Runes spawning at the same moment are announced in one sentence, 20s early,
+  // so they finish before the stack call at :48
+  const soon = [];
+  const bottle = Object.values(me?.items || {}).some(i => i?.name === 'item_bottle');
+  document.getElementById('water').hidden = t >= 240;
+  for (const id of ['water', 'power', 'bounty', 'wisdom', 'lotus']) {
+    const left = untilNext(t, SCHEDULES[id]), v = fitRole(id);
+    setRow(id, 'in ' + fmt(left), left <= RUNE_WARN && v !== 'dim', v === 'dim' ? 'dim' : null);
+    const key = id + Math.round(t + left);
+    if (left <= RUNE_WARN && !spoken.has(key)) { spoken.add(key); if (voiced(id, pos(), t, bottle)) soon.push(id); }
+  }
+  // always on, so a wrong guess gets noticed; it brightens for a few seconds when the role changes
+  const rl = document.getElementById('roleline');
+  rl.textContent = (rolePos ? 'Playing as ' + ROLE_NAMES[rolePos] + (settings.role === 'auto' ? ' (guess)' : '') : 'Role not known yet')
+    + ' · Ctrl+Shift+D to change';
+  rl.classList.toggle('fresh', Date.now() - roleSince < 8000);
+  if (soon.length) say('runes' + Math.round(t), listOf(soon.map(id => SAY_NAME[id])) + ' in 20 seconds', 'voice_runes', 'runes-' + soon.join('-'));
+
+  const st = untilStack(t);
+  // camps first spawn at 1:00, so there's nothing to stack before that
+  document.getElementById('stack').hidden = t < 60;
+  const sv = fitRole('stack');
+  setRow('stack', st <= DUE ? 'pull in ' + fmt(st) : 'pull at :53', st <= DUE && sv !== 'dim', sv === 'dim' ? 'dim' : null);
+  // with a role, only supports hear it, and at most every 2 minutes (it used to fire about 40 times a game)
+  if (st <= STACK_WARN && t > 60 && voiced('stack', pos(), t) && (!pos() || t - lastStack > 110)) {
+    lastStack = t;
+    say('stack' + Math.round(t + st), 'Stack in 5', 'voice_stack', 'stack', true);
+  }
+
+  const p = pits(t, map.daytime);
+  const moving = p.moves && p.swapIn <= MOVE_WARN;
+  const r = roshan(t, roshanAt);
+  if (r.phase === 'dead') setRow('roshan', p.rosh + ', ' + r.text, false, 'dim');
+  else if (moving) setRow('roshan', 'moves ' + p.tormentor + ' in ' + fmt(p.swapIn), true);
+  else setRow('roshan', p.rosh + ', ' + (settings.jokes && roshanAt == null && t >= 1200 ? pickQuip(ROSH_LONELY, t) : r.text), r.phase === 'maybe', r.phase === 'up' ? 'good' : null);
+  if (moving && r.phase !== 'dead') say('rosh-move' + Math.round(t + p.swapIn), 'Roshan moves to the ' + p.tormentor + ' pit in 30 seconds', 'voice_roshan', 'rosh-move-' + p.tormentor);
+  if (roshanAt != null) {
+    if (r.phase === 'maybe') say('rosh-maybe' + roshanAt, 'Roshan can spawn now, ' + p.rosh + ' pit', 'voice_roshan', 'rosh-maybe-' + p.rosh);
+    if (r.phase === 'up') say('rosh-up' + roshanAt, 'Roshan is up, ' + p.rosh + ' pit', 'voice_roshan', 'rosh-up-' + p.rosh);
+  }
+
+  // shortcut: no Tormentor kill event seen yet, so this shows location only, not whether it's alive
+  if (t < TORMENTOR_AT) setRow('tormentor', p.tormentor + ', from 20:00', false);
+  else if (moving) setRow('tormentor', 'moves ' + p.rosh + ' in ' + fmt(p.swapIn), true);
+  else setRow('tormentor', p.tormentor + ' side', false);
+
+  const aegisLeft = aegisAt == null ? 0 : AEGIS - (t - aegisAt);
+  document.getElementById('aegis').hidden = aegisLeft <= 0;
+  setRow('aegis', (aegisMine ? 'yours, ' : '') + 'expires in ' + fmt(aegisLeft), aegisLeft <= 30, aegisMine ? 'good' : null);
+  if (aegisLeft > 0 && aegisLeft <= 30) say('aegis' + aegisAt, 'Aegis expires in 30 seconds', 'voice_roshan', 'aegis');
+
+  renderStatus(t);
+  renderItems(t);
+  renderWards(t);
+
+  const enemy = myTeam === 'radiant' ? 'dire' : 'radiant';
+  const theirs = glyphIn(glyphs, enemy, t);
+  // their glyph on cooldown is the time to push, so that's the green state
+  setRow('glyph_enemy', theirs > 0 ? 'down, back in ' + fmt(theirs) : 'ready', false, theirs > 0 ? 'good' : null);
+  document.getElementById('glyph_enemy').hidden = !myTeam;
+  const ours = myTeam ? glyphIn(glyphs, myTeam, t) : 0;
+  document.getElementById('glyph_ours').hidden = ours <= 0;
+  setRow('glyph_ours', 'back in ' + fmt(ours), false);
+}
+
+// One chip: icon plus words. The strip keeps its words in icon view too, so it reads the same either way.
+const chip = (cls, icon, words) => `<span class="${cls}">${icon ? `<i class="ic">${ICON[icon]}</i>` : ''}${words}</span>`;
+
+function renderStatus(t) {
+  const dn = dayNight(t, map.daytime, map.nightstalker_night);
+  document.getElementById('dn').innerHTML = dn.forced
+    ? chip('', dn.by || (dn.day ? 'day' : 'night'), dn.by ? 'Night Stalker night' : dn.day ? 'Forced day' : 'Forced night')
+    : chip('', dn.day ? 'day' : 'night', `${dn.next === 'night' ? 'Night' : 'Day'} in ${fmt(dn.in)}`);
+  const tp = tpStatus(me?.items?.teleport0);
+  document.getElementById('tp').innerHTML = !me?.items ? ''
+    : tp.state === 'ok' ? chip('ok', 'tp', 'TP ready')
+    : tp.state === 'cd' ? chip('off', 'tp', `TP ${fmt(tp.cd)}`)
+    : chip('bad', 'tp', settings.jokes ? pickQuip(NO_TP, t) : 'No TP');
+  // the feed's buyback time is in game time, which runs ahead of the clock by the pre-game
+  const bb = buybackStatus(me?.hero, me?.gold, t + map.game_time - map.clock_time);
+  document.getElementById('bb').innerHTML = !bb ? ''
+    : bb.state === 'ok' ? chip('ok', 'buyback', 'Buyback ready')
+    : bb.state === 'cd' ? chip('off', 'buyback', `Buyback ${fmt(bb.cd)}`)
+    : chip('bad', 'buyback', settings.jokes ? pickQuip(BUYBACK_SHORT, t)(bb.short) : `Buyback: ${bb.short} short`);
+  // only shown while it's dead; no courier icon extracted yet
+  const cr = courierStatus(couriers, myId);
+  document.getElementById('cr').innerHTML = cr?.state === 'dead' ? chip('bad', null, `Courier back in ${fmt(cr.in)}`) : '';
+}
+
+// Item timing: fetched once per hero from STRATZ, then filtered to the next few minutes as the game goes
+const { invoke } = TAURI.core;
+let itemNames = null, itemRows = null, itemsFor = null;
+async function stratz(query) {
+  const token = await invoke('load_token');
+  if (!token) return null;
+  return JSON.parse(await invoke('stratz', { token, query })).data;
+}
+async function loadItems(heroId) {
+  const key = heroId + ':' + rolePos;
+  itemsFor = key; itemRows = null;
+  try {
+    if (!itemNames) {
+      const d = await stratz('{ constants { items(language: ENGLISH) { id shortName displayName } } }');
+      if (!d) return;
+      itemNames = new Map(d.constants.items.map(i => [i.id, i]));
+    }
+    // matchLimit 50 keeps rarer rows; without it STRATZ returns only ~40 rows for the whole game
+    // only games where the hero played our role, so a support Pudge doesn't see mid Pudge items
+    const role = rolePos ? `, positionIds: [POSITION_${rolePos}]` : '';
+    const d = await stratz(`{ heroStats { itemFullPurchase(heroId: ${heroId}, minTime: 0, maxTime: 90, matchLimit: 50${role}) { itemId time matchCount winCount } } }`);
+    if (itemsFor === key) itemRows = d?.heroStats?.itemFullPurchase || null;
+  } catch {}
+}
+// how often STRATZ sees this hero in each position, for the Auto role guess
+async function loadSplit(heroId) {
+  splitFor = heroId; roleSplit = null;
+  try {
+    const q = [1, 2, 3, 4, 5].map(p => `p${p}: winWeek(take: 1, heroIds: [${heroId}], positionIds: [POSITION_${p}]) { matchCount }`).join(' ');
+    const d = await stratz(`{ heroStats { ${q} } }`);
+    if (splitFor !== heroId || !d) return;
+    roleSplit = Object.fromEntries([1, 2, 3, 4, 5].map(p => [p, d.heroStats['p' + p]?.[0]?.matchCount || 0]));
+    updateRole();
+  } catch {}
+}
+// Enemy heroes we know about: the draft popup's enemy row (if typed in the last 2 hours) and every
+// enemy hero the minimap has shown this game
+const HERO_NAME = Object.fromEntries(HEROES.map(h => ['npc_dota_hero_' + h.key, h.name]));
+const NPC_BY_ID = Object.fromEntries(HEROES.map(h => [h.id, 'npc_dota_hero_' + h.key]));
+let seenEnemies = new Set();
+function knownEnemies() {
+  const all = new Set(seenEnemies);
+  try {
+    const d = JSON.parse(localStorage.getItem('draftEnemies') || 'null');
+    if (d && Date.now() - d.at < 2 * 3600e3) d.ids.forEach(id => NPC_BY_ID[id] && all.add(NPC_BY_ID[id]));
+  } catch {}
+  return all;
+}
+// our hero and role finish this item in at least 3% as many games as their most common item
+function buysItem(item) {
+  if (!itemRows || !itemNames) return false;
+  const games = new Map();
+  for (const r of itemRows) games.set(r.itemId, (games.get(r.itemId) || 0) + r.matchCount);
+  const id = [...itemNames.values()].find(i => 'item_' + i.shortName === item)?.id;
+  return (games.get(id) || 0) >= 0.03 * Math.max(0, ...games.values());
+}
+// name the enemy each hint is about, unless the rule's sentence already does
+function hintText(h) {
+  const name = HERO_NAME[h.enemy] || 'They';
+  if (h.say.includes('<enemy>')) return h.say.replace('<enemy>', name);
+  return h.say.includes(name) ? h.say : name + ': ' + h.say;
+}
+function renderItems(t) {
+  const el = document.getElementById('items');
+  const ownedNames = new Set(Object.values(me?.items || {}).map(i => i?.name).filter(Boolean));
+  const hints = me?.hero?.name ? matchupHints({ hero: me.hero.name, pos: rolePos, minute: Math.floor(t / 60),
+    enemies: knownEnemies(), owned: ownedNames, buys: buysItem }).slice(0, 2) : [];
+  let top = [];
+  if (itemRows) {
+    // skip what you already carry and lotus orbs, which are picked up, not bought
+    const owned = new Set([...ownedNames].map(n => n.replace(/^item_/, '')));
+    const skip = new Set([...itemNames.values()].filter(i => owned.has(i.shortName) || /lotus/.test(i.shortName)).map(i => i.id));
+    top = itemsNow(itemRows, Math.max(0, Math.floor(t / 60)), skip);
+  }
+  el.hidden = !top.length && !hints.length;
+  // win rate: green at 55%+, red at 45% or less
+  el.innerHTML = (top.length ? '<div class="ih"><span>Items now</span><span>win</span></div>' : '') + top.map(i => {
+    const it = itemNames.get(i.id), w = Math.round(i.win * 100);
+    return `<div class="it"><img src="icons/items/${it?.shortName}.png" alt="" onerror="this.style.visibility='hidden'">
+      <span class="nm">${it?.displayName || i.id}</span><span class="wr ${w >= 55 ? 'ok' : w <= 45 ? 'bad' : ''}">${w}%</span></div>`;
+  }).join('') + (hints.length ? '<div class="ih vs"><span>Against their heroes</span></div>' : '') + hints.map(h =>
+    `<div class="it hint ${h.action}"><img src="icons/items/${h.item.replace(/^item_/, '')}.png" alt="" onerror="this.style.visibility='hidden'">
+      <span class="nm">${hintText(h)}</span></div>`).join('');
+}
+
+function renderWards(t) {
+  const el = document.getElementById('wards');
+  // nothing to say before the horn: wards go up in the first minute
+  el.hidden = t < 0;
+  fitRole('wards');
+  let { kinds, quip } = wardLine(wardsLeft(wards, t), t);
+  if (!settings.jokes) quip = kinds.length ? null : 'No wards up';
+  const NAME = { observer: ['observer', 'observers'], sentry: ['sentry', 'sentries'] };
+  el.innerHTML = kinds.map(k => `<span><b>${k.count} ${NAME[k.kind][k.count > 1 ? 1 : 0]}</b>, next out
+    <span class="${k.next <= 30 ? 'due' : ''}">${fmt(k.next)}</span></span>`).join('<span>·</span>')
+    + (quip ? `${kinds.length ? '<span>·</span>' : ''}<span class="quip">${quip}</span>` : '');
+}
+
+// Dota repeats recent events in several payloads, so each one is handled once
+function onEvents(d) {
+  const offset = d.map.game_time - d.map.clock_time;
+  for (const e of d.events || []) {
+    const key = JSON.stringify(e);
+    if (seenEvents.has(key)) continue;
+    seenEvents.add(key);
+    if (e.event_type === 'roshan_killed') { roshanAt = e.game_time - offset; aegisAt = null; }
+    if (e.event_type === 'aegis_picked_up') aegisAt = e.game_time - offset;
+    if (e.event_type === 'generic_event') {
+      let g; try { g = JSON.parse(e.data); } catch { continue; }
+      const at = e.game_time - offset;
+      if (g.type === 'CHAT_MESSAGE_GLYPH_USED') glyphUsed(glyphs, g, at);
+      const lost = buildingLost(g);
+      if (lost) glyphLoss(glyphs, lost.team, lost.kind, at);
+    }
+  }
+}
+
+// Prefer a natural-sounding Windows voice over the default one
+function pickVoice() {
+  const vs = speechSynthesis.getVoices().filter(v => v.lang.startsWith('en'));
+  voice = vs.find(v => /natural/i.test(v.name)) || vs.find(v => /aria|jenny|guy/i.test(v.name)) || vs[0] || null;
+}
+speechSynthesis.onvoiceschanged = pickVoice;
+pickVoice();
+
+const { listen } = TAURI.event;
+listen('gsi', e => {
+  try {
+    const d = JSON.parse(e.payload);
+    if (!d.map) return;
+    if (d.map.matchid !== matchId) {
+      matchId = d.map.matchid; roshanAt = aegisAt = null; glyphs = newGlyphs(); wards = newWards(); seenEvents.clear(); spoken.clear();
+      lanes = []; lastStack = -Infinity; seenEnemies = new Set();
+    }
+    if (d.player?.team_name && d.player.team_name !== myTeam) { myTeam = d.player.team_name; glyphIcons(); }
+    if (d.hero) me = { hero: d.hero, items: d.items, gold: d.player?.gold };
+    if (d.hero?.id > 0 && d.hero.id !== splitFor) loadSplit(d.hero.id);
+    if (d.hero?.id > 0 && d.hero.id + ':' + rolePos !== itemsFor) loadItems(d.hero.id);
+    // the lane we stand in between 1:30 and 3:30, once per game second
+    const ct = d.map.clock_time;
+    if (ct >= 90 && ct <= 210 && d.hero?.xpos != null && ct !== lanes.at(-1)?.t) {
+      lanes.push({ t: ct, lane: laneAt(d.hero.xpos, d.hero.ypos) });
+      updateRole();
+    }
+    // player ids: Radiant 0-4, Dire 5-9, in team slot order
+    if (d.player?.team_slot != null) myId = d.player.team_slot + (d.player.team_name === 'dire' ? 5 : 0);
+    couriers = d.couriers || null;
+    // our own Aegis shows in our items; once it leaves them it was used on death (or expired), so stop the timer
+    if (d.items) {
+      const has = Object.values(d.items).some(i => i?.name === 'item_aegis');
+      if (aegisMine && !has) aegisAt = null;
+      aegisMine = has;
+    }
+    map = d.map; gotAt = Date.now();
+    if (myTeam) trackWards(wards, d.minimap, myTeam, d.map.clock_time);
+    for (const u of Object.values(d.minimap || {})) {
+      if (u?.image === 'minimap_enemyicon' && u.unitname?.startsWith('npc_dota_hero_')) seenEnemies.add(u.unitname);
+    }
+    onEvents(d);
+  } catch {}
+});
+// el_<part> settings show or hide one part of the overlay; glyphs covers both glyph rows
+const PARTS = { glyphs: ['glyph_enemy', 'glyph_ours'] };
+const partEls = k => (PARTS[k] || [k]).map(id => document.getElementById(id)).filter(Boolean);
+function showPart(k, on, animate) {
+  for (const el of partEls(k)) {
+    el.classList.remove('arrive', 'leave');
+    if (on) {
+      el.classList.remove('off');
+      if (animate) { void el.offsetWidth; el.classList.add('arrive'); }
+    } else if (animate) {
+      el.classList.add('leave');
+      setTimeout(() => el.classList.contains('leave') && el.classList.add('off'), 250);
+    } else el.classList.add('off');
+  }
+}
+function applySetting(id, on, animate = false) {
+  // the preview never talks, whatever the voice settings say
+  if (DEMO && id.startsWith('voice') && id !== 'voice_pick') return;
+  if (id === 'highlight') {
+    document.querySelectorAll('.hl').forEach(el => el.classList.remove('hl'));
+    if (on) partEls(on).forEach(el => el.classList.add('hl'));
+    return;
+  }
+  settings[id] = on;
+  if (id === 'icons') document.body.classList.toggle('icons', on);
+  if (id.startsWith('el_')) showPart(id.slice(3), on, animate);
+  if (id === 'role' || id === 'role_filter') updateRole();
+}
+listen('settings', e => applySetting(...e.payload, true));
+// toggles saved from the last run (the tray only sends changes)
+invoke('get_settings').then(t => Object.entries(t || {}).forEach(([id, on]) => applySetting(id, on))).catch(() => {});
+listen('gsi_error', e => { document.getElementById('err').textContent = e.payload; });
+setInterval(tick, 250);
+</script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dota Helper top bar</title>
+<style>
+/* A thin strip right under Dota's top-bar portraits, where its respawn timers sit.
+   Dead heroes have no streak, so the two never show under the same portrait.
+   The window is 860x28 in 1080p units (see main.rs), so 1 unit = 100vw/860. */
+html,body{margin:0;height:100%;background:transparent;overflow:hidden}
+body{font-family:Bahnschrift,'Segoe UI',sans-serif;font-weight:700;user-select:none}
+#bar{visibility:hidden}
+#bar.on{visibility:visible}
+.s{position:absolute;top:8%;height:84%;width:5.8vw;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;
+  font-size:68vh;color:#FFD24A;background:rgb(0 0 0 / .78);border-radius:.15em;text-shadow:0 1px 2px #000;font-variant-numeric:tabular-nums}
+.s[hidden]{display:none}
+</style>
+</head>
+<body>
+<div id="bar"></div>
+<script type="module">
+import { newStreaks, applyKills } from './timers.js';
+
+// portrait centers, in pixels from the screen's middle at 1080p (measured off a 1920x1080 screenshot), slots 0-9
+const CENTER = [-387, -322, -259, -198, -137, 133, 196, 258, 321, 383];
+const IN_GAME = ['DOTA_GAMERULES_STATE_PRE_GAME', 'DOTA_GAMERULES_STATE_GAME_IN_PROGRESS'];
+const bar = document.getElementById('bar');
+const boxes = CENTER.map(c => {
+  const b = document.createElement('div');
+  b.className = 's';
+  b.hidden = true;
+  b.style.left = (430 + c) / 860 * 100 + 'vw';
+  bar.append(b);
+  return b;
+});
+
+let streaks = newStreaks(), matchId = null, gotAt = 0, state = null, show = true;
+const seen = new Set();
+
+function render() {
+  // Dota calls it a streak from 3 kills
+  streaks.forEach((n, i) => { boxes[i].hidden = n < 3; boxes[i].textContent = n; });
+}
+setInterval(() => bar.classList.toggle('on', show && Date.now() - gotAt < 15000 && IN_GAME.includes(state)), 500);
+
+const { listen } = window.__TAURI__.event;
+listen('gsi', e => {
+  try {
+    const d = JSON.parse(e.payload);
+    if (!d.map) return;
+    if (d.map.matchid !== matchId) { matchId = d.map.matchid; streaks = newStreaks(); seen.clear(); }
+    state = d.map.game_state; gotAt = Date.now();
+    // Dota repeats recent events in several payloads, so each one is handled once
+    const gs = [];
+    for (const ev of d.events || []) {
+      const key = JSON.stringify(ev);
+      if (seen.has(key) || ev.event_type !== 'generic_event') continue;
+      seen.add(key);
+      try { gs.push(JSON.parse(ev.data)); } catch {}
+    }
+    if (gs.length) applyKills(streaks, gs);
+    // our own streak comes straight from Dota, so it's right even after the app starts mid-game
+    const p = d.player;
+    if (p?.kill_streak != null && p.team_name && p.team_slot != null) streaks[(p.team_name === 'dire' ? 5 : 0) + p.team_slot] = p.kill_streak;
+    render();
+  } catch {}
+});
+listen('settings', e => { if (e.payload[0] === 'show') show = e.payload[1]; });
+window.__TAURI__.core.invoke('get_settings').then(t => { if (t && 'show' in t) show = t.show; }).catch(() => {});
+</script>
+</body>
+</html>
