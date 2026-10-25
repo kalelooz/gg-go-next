@@ -31,3 +31,12 @@ assert.equal(guessRole(riki, ['top', 'top'], 'dire'), 1);                // Dire
 assert.equal(guessRole(null, ['top'], 'radiant'), 3);
 assert.equal(guessRole(null, [], 'radiant'), null);
 console.log('roles ok');
+
+// a mid sees every rune row at full strength and hears water and power runes (all game with a Bottle)
+{
+  for (const r of ['water', 'power', 'bounty', 'wisdom', 'lotus']) assert.equal(roleView(r, 2), 'show', r);
+  assert.equal(voiced('water', 2, 100), true);
+  assert.equal(voiced('power', 2, 1500, true), true);
+  assert.equal(voiced('power', 2, 1500, false), false);
+}
+console.log('roles mid ok');

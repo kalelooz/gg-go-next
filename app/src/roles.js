@@ -5,7 +5,8 @@ export const ROLE_NAMES = { 1: 'Carry', 2: 'Mid', 3: 'Offlane', 4: 'Soft support
 const VIEW = {
   water:  ['hide', 'show', 'hide', 'show', 'hide'],
   power:  ['hide', 'show', 'dim', 'show', 'show'],
-  wisdom: ['dim', 'dim', 'show', 'show', 'show'],
+  // mids asked to see every rune at full strength (2026-10-26)
+  wisdom: ['dim', 'show', 'show', 'show', 'show'],
   lotus:  ['dim', 'show', 'show', 'show', 'show'],
   stack:  ['hide', 'dim', 'dim', 'show', 'show'],
   wards:  ['hide', 'show', 'dim', 'show', 'show'],
