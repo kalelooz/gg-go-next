@@ -56,6 +56,7 @@ header button{padding:4px 10px;font-size:13px}
 .slot.add:focus-within .ph{border-color:var(--accent)}
 .slot.you{color:var(--soft);font-size:13px}
 .slot.you .ph{border-style:solid;display:grid;place-items:center;font-size:11px;color:var(--soft)}
+.slot.you .pl{border-style:solid}
 
 .bans{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:10px 12px 0;padding:7px 8px 7px 10px;background:var(--panel);border:1px solid var(--line);border-radius:8px;cursor:text}
 .bans:focus-within{border-color:var(--soft)}
@@ -88,9 +89,23 @@ header button{padding:4px 10px;font-size:13px}
 .sugg .rank{padding-top:0;font-size:13px;color:var(--soft)}
 .sugg .rank small{flex:1;text-align:right;font-size:12px;color:var(--muted)}
 /* position menu on each picked hero: muted when guessed, solid when you set it, red edge when it's an odd spot */
-select.p{font:inherit;font-size:12px;color:var(--soft);background:var(--raised);border:1px dashed var(--edge);border-radius:5px;padding:2px 2px;width:62px;flex:none;cursor:pointer}
-select.p.set{color:var(--ink);border-style:solid}
-select.p.rare{border:1px solid var(--enemy);color:var(--enemy)}
+/* five fixed position rows per team. The number is dashed while the app guessed it, solid once you placed
+   the hero, red when the hero is almost never played there. */
+.slot.prow{padding-left:6px}
+.pl{flex:none;width:22px;height:22px;display:grid;place-items:center;border:1px dashed var(--edge);border-radius:5px;font-size:12px;font-weight:600;color:var(--soft)}
+.slot.set .pl{border-style:solid;color:var(--ink)}
+.slot.rare .pl{border:1px solid var(--enemy);color:var(--enemy)}
+.slot.empty{color:var(--muted);font-size:13px;cursor:pointer}
+.slot.empty .n{font-size:13px}
+.slot.empty.next{box-shadow:inset 0 0 0 1px var(--accent);color:var(--ink)}
+.slot.hero{cursor:grab;touch-action:none}
+.slot.hero:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.grip{color:var(--muted);font-size:12px;letter-spacing:-2px;padding:0 2px}
+.slot.lifted{opacity:.35}
+.slot.drop{box-shadow:inset 0 0 0 2px var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--panel))}
+/* the row under the pointer while dragging */
+.ghost{position:fixed;z-index:20;pointer-events:none;background:var(--raised);border:1px solid var(--edge);border-radius:6px;box-shadow:0 8px 20px rgb(0 0 0 / .45);cursor:grabbing}
+body.dragging,body.dragging *{cursor:grabbing!important}
 .lane{display:flex;flex-wrap:wrap;gap:4px 10px;margin-top:4px;font-size:12px;color:var(--muted)}
 .lane span b{font-weight:600}
 .pick .score small.ln{color:var(--soft)}
@@ -163,17 +178,15 @@ footer .row{display:flex;gap:6px}
 <div class="teams">
   <section class="team" id="enemyTeam" data-side="enemy">
     <h2>Enemy <span class="count" id="enemyCount"></span></h2>
-    <div id="enemySlots"></div>
     <label class="slot add" id="enemyAdd"><span class="ph"></span>
       <input id="enemyIn" autocomplete="off" spellcheck="false" placeholder="Type a hero: am, qop" aria-label="Add an enemy hero"></label>
-    <div id="enemyEmpty"></div>
+    <div id="enemySlots" class="rows"></div>
   </section>
   <section class="team" id="allyTeam" data-side="ally">
     <h2>Your team <span class="count" id="allyCount"></span></h2>
-    <div id="allySlots"></div>
     <label class="slot add" id="allyAdd"><span class="ph"></span>
       <input id="allyIn" autocomplete="off" spellcheck="false" placeholder="Type a hero" aria-label="Add a hero to your team"></label>
-    <div id="allyEmpty"></div>
+    <div id="allySlots" class="rows"></div>
   </section>
 </div>
 <div class="bans" id="bans" data-side="ban">
@@ -241,6 +254,8 @@ const state = {
   pos: Number(store.get('pos')) || 5, pool: store.get('pool') || 'mine', rank: store.get('rank') || 'game',
   // positions you set by hand; the rest are guessed from what each hero usually plays
   fixed: { enemy: {}, ally: {} },
+  // an empty position row you clicked: the next hero you add to that team goes there
+  nextPos: { enemy: null, ally: null },
 };
 const share = (id, p) => posShare(heroPos[id], p);
 // Everyone's position right now. Your team's free positions are the four that aren't yours.
@@ -415,6 +430,10 @@ function add(side, hero) {
   if (list.length >= MAX[side] || taken().has(hero.id)) return;
   list.push(hero.id);
   if (side !== 'ban') loadMatchup(hero.id);
+  // you clicked an empty position row first, so the hero goes there
+  const n = state.nextPos[side];
+  if (n && !state[side].some(h => h !== hero.id && state.fixed[side][h] === n)) state.fixed[side][hero.id] = n;
+  state.nextPos[side] = null;
   field(side).value = ''; state.results = []; state.sel = 0;
   render();
   // a full team hides its field, so carry on in the next one (5th enemy goes to your team)
@@ -425,15 +444,20 @@ function remove(side, id) {
   if (state.fixed[side]) delete state.fixed[side][id];
   render(); field(side).focus();
 }
-// Setting a hero to a position takes it from whoever had it; that hero goes back to being guessed
-function setHeroPos(side, id, p) {
+// Moving a hero to a position swaps it with whoever was there. Both are then placed by you, so
+// adding more heroes won't shuffle them.
+function moveHero(side, id, p) {
+  const pos = positions()[side], from = pos[id];
+  if (!from || from === p || (side === 'ally' && p === state.pos)) return;
+  const other = state[side].find(h => pos[h] === p);
   const f = state.fixed[side];
-  for (const h in f) if (f[h] === p) delete f[h];
+  for (const h in f) if (f[h] === p || f[h] === from) delete f[h];
   f[id] = p;
+  if (other) f[other] = from;
   render();
 }
 function clearDraft() {
-  state.enemy = []; state.ally = []; state.ban = []; state.fixed = { enemy: {}, ally: {} };
+  state.enemy = []; state.ally = []; state.ban = []; state.fixed = { enemy: {}, ally: {} }; state.nextPos = { enemy: null, ally: null };
   SIDES.forEach(s => field(s).value = '');
   state.results = []; render(); field('enemy').focus();
 }
@@ -465,12 +489,67 @@ for (const side of SIDES) {
     else if (e.key === 'Escape') { if (n) { state.results = []; renderResults(); } else f.value = ''; }
   });
 }
-// clicking anywhere on a team or the ban row (not on a hero) goes to its field
+// clicking a team or the ban row goes to its field; an empty position row also marks where the next hero goes
 ['enemyTeam', 'allyTeam', 'bans'].forEach(id => $(id).addEventListener('mousedown', e => {
   const s = $(id).dataset.side;
-  if (e.target.closest('button, input') || state[s].length >= MAX[s]) return;
-  e.preventDefault(); field(s).focus();
+  if (e.target.closest('button, input, .slot.hero, .slot.you') || state[s].length >= MAX[s]) return;
+  e.preventDefault();
+  const row = e.target.closest('.slot.empty');
+  if (row) { state.nextPos[s] = state.nextPos[s] === Number(row.dataset.slot) ? null : Number(row.dataset.slot); render(); }
+  field(s).focus();
 }));
+
+// Drag a hero onto another row of its team to swap them. Built on pointer events: Tauri's own file-drop
+// handling blocks HTML drag and drop in Windows webviews.
+let drag = null;
+function endDrag() {
+  if (!drag) return;
+  drag.ghost?.remove(); drag.row.classList.remove('lifted'); drag.over?.classList.remove('drop');
+  document.body.classList.remove('dragging');
+  drag = null;
+}
+document.addEventListener('pointerdown', e => {
+  const row = e.target.closest('.slot.hero');
+  if (!row || e.button !== 0 || e.target.closest('button')) return;
+  const r = row.getBoundingClientRect();
+  drag = { row, side: row.dataset.side, id: Number(row.dataset.id), x: e.clientX, y: e.clientY, dx: e.clientX - r.left, dy: e.clientY - r.top, on: false };
+  row.setPointerCapture(e.pointerId);
+});
+document.addEventListener('pointermove', e => {
+  if (!drag) return;
+  if (!drag.on) {
+    if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) < 5) return;   // a click, not a drag yet
+    const r = drag.row.getBoundingClientRect();
+    drag.ghost = drag.row.cloneNode(true);
+    drag.ghost.classList.add('ghost');
+    Object.assign(drag.ghost.style, { width: r.width + 'px', height: r.height + 'px', left: '0', top: '0' });
+    document.body.append(drag.ghost);
+    drag.row.classList.add('lifted'); document.body.classList.add('dragging');
+    drag.on = true;
+  }
+  drag.ghost.style.transform = `translate(${e.clientX - drag.dx}px, ${e.clientY - drag.dy}px)`;
+  const t = document.elementFromPoint(e.clientX, e.clientY)?.closest('.slot.prow');
+  const ok = t && t !== drag.row && t.dataset.side === drag.side && !t.classList.contains('you') ? t : null;
+  if (ok !== drag.over) { drag.over?.classList.remove('drop'); ok?.classList.add('drop'); drag.over = ok; }
+});
+document.addEventListener('pointerup', () => {
+  if (!drag) return;
+  const { on, over, side, id } = drag;
+  endDrag();
+  if (on && over) moveHero(side, id, Number(over.dataset.slot));
+});
+document.addEventListener('pointercancel', endDrag);
+// keyboard: on a hero row, 1-5 moves it there, Delete removes it
+document.addEventListener('keydown', e => {
+  const row = e.target.closest?.('.slot.hero');
+  if (!row) return;
+  const side = row.dataset.side, id = Number(row.dataset.id);
+  if (/^[1-5]$/.test(e.key)) {
+    moveHero(side, id, Number(e.key));
+    document.querySelector(`.slot.hero[data-side="${side}"][data-id="${id}"]`)?.focus();
+    e.preventDefault();
+  } else if (e.key === 'Delete' || e.key === 'Backspace') { remove(side, id); e.preventDefault(); }
+});
 addEventListener('resize', () => { state.results = []; renderResults(); });
 document.querySelectorAll('[data-pos]').forEach(b => b.onclick = () => setPos(Number(b.dataset.pos)));
 document.querySelectorAll('[data-pool]').forEach(b => b.onclick = () => { state.pool = b.dataset.pool; store.set('pool', state.pool); renderPicks(); });
@@ -501,24 +580,31 @@ $('saveToken').onclick = async () => {
 
 // --- render ---
 // Filled heroes, then the static field (so typing focus survives re-renders), then empty slots
+// Five rows, Pos 1 to Pos 5, the field to type in above them
 function renderTeam(side, pos) {
   const ids = state[side], full = ids.length >= MAX[side];
-  $(side + 'Slots').innerHTML = ids.map(id => {
-    const h = heroById[id], p = pos[side][id], set = state.fixed[side][id] === p;
-    const s = share(id, p), hp = heroPos[id];
-    const rare = hp && p && s < RARE;
-    const won = hp?.games[p] ? `, ${Math.round(100 * hp.wins[p] / hp.games[p])}% won there` : '';
+  const at = {};
+  for (const id of ids) if (pos[side][id]) at[pos[side][id]] = id;
+  if (state.nextPos[side] && at[state.nextPos[side]]) state.nextPos[side] = null;   // that row got filled meanwhile
+  $(side + 'Slots').innerHTML = [1, 2, 3, 4, 5].map(n => {
+    const attrs = `data-side="${side}" data-slot="${n}"`;
+    if (side === 'ally' && n === state.pos)
+      return `<div class="slot prow you" ${attrs}><span class="pl">${n}</span><span class="ph">You</span><span class="n">${ROLE[n]}</span></div>`;
+    const id = at[n];
+    if (!id) {
+      const next = state.nextPos[side] === n;
+      return `<div class="slot prow empty${next ? ' next' : ''}" ${attrs} title="Click, then type a hero to put it here"><span class="pl">${n}</span><span class="ph"></span><span class="n">${next ? 'Next hero goes here' : ROLE[n]}</span></div>`;
+    }
+    const h = heroById[id], set = state.fixed[side][id] === n, hp = heroPos[id], s = share(id, n);
+    const rare = hp && s < RARE;
+    const won = hp?.games[n] ? `, ${Math.round(100 * hp.wins[n] / hp.games[n])}% won there` : '';
     const pct = s < 0.01 ? 'under 1%' : Math.round(100 * s) + '%';
-    const tip = `${h.name} as ${ROLE[p] || '?'}: ${pct} of its games${won}. ${set ? 'Set by you.' : 'Guessed from what it usually plays.'}`;
-    const opts = [1, 2, 3, 4, 5].map(n => `<option value="${n}"${n === p ? ' selected' : ''}${side === 'ally' && n === state.pos ? ' disabled' : ''} title="${ROLE[n]}">Pos ${n}</option>`).join('');
-    return `<div class="slot">${img(h)}<span class="n">${h.name}</span>
-      <select class="p${set ? ' set' : ''}${rare ? ' rare' : ''}" data-side="${side}" data-id="${id}" title="${tip}" aria-label="Position of ${h.name}">${opts}</select>
-      <button class="rm" type="button" data-side="${side}" data-id="${id}" aria-label="Remove ${h.name}">×</button></div>`;
+    const tip = `${h.name} as ${ROLE[n]}: ${pct} of its games${won}. ${set ? 'Placed by you.' : 'Guessed from what it usually plays.'} Drag onto another row to swap.`;
+    return `<div class="slot prow hero${set ? ' set' : ''}${rare ? ' rare' : ''}" ${attrs} data-id="${id}" tabindex="0" title="${tip}"
+      aria-label="${h.name}, ${ROLE[n]}. Press 1 to 5 to move it, Delete to remove it."><span class="pl">${n}</span>${img(h)}<span class="n">${h.name}</span>
+      <span class="grip" aria-hidden="true">⋮⋮</span><button class="rm" type="button" data-side="${side}" data-id="${id}" aria-label="Remove ${h.name}" tabindex="-1">×</button></div>`;
   }).join('');
-  $(side + 'Slots').querySelectorAll('select.p').forEach(sel => sel.onchange = () => setHeroPos(side, Number(sel.dataset.id), Number(sel.value)));
   $(side + 'Add').hidden = full;
-  $(side + 'Empty').innerHTML = '<div class="slot"><span class="ph"></span></div>'.repeat(Math.max(0, MAX[side] - ids.length - 1)) +
-    (side === 'ally' ? `<div class="slot you"><span class="ph">You</span>${ROLE[state.pos]}</div>` : '');
   $(side + 'Count').textContent = `${ids.length}/${MAX[side]}`;
 }
 
