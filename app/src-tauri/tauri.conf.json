@@ -51,18 +51,6 @@
         "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --autoplay-policy=no-user-gesture-required"
       },
       {
-        "label": "summary",
-        "title": "Match summary",
-        "url": "summary.html",
-        "width": 594,
-        "height": 907,
-        "decorations": false,
-        "alwaysOnTop": true,
-        "resizable": false,
-        "visible": false,
-        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --autoplay-policy=no-user-gesture-required"
-      },
-      {
         "label": "settings",
         "title": "Customize overlay",
         "url": "settings.html",

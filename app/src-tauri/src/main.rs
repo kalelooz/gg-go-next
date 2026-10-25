@@ -151,23 +151,6 @@ fn save_token(app: tauri::AppHandle, token: String) -> Result<(), String> {
     std::fs::write(path, token.trim()).map_err(|e| e.to_string())
 }
 
-// The last finished match for the summary window, so it can be reopened after a restart
-fn match_path(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
-    app.path().app_config_dir().map(|d| d.join("last_match.json")).map_err(|e| e.to_string())
-}
-
-#[tauri::command]
-fn load_match(app: tauri::AppHandle) -> Option<String> {
-    std::fs::read_to_string(match_path(&app).ok()?).ok()
-}
-
-#[tauri::command]
-fn save_match(app: tauri::AppHandle, json: String) -> Result<(), String> {
-    let path = match_path(&app)?;
-    create_dir_all(path.parent().unwrap()).map_err(|e| e.to_string())?;
-    std::fs::write(path, json).map_err(|e| e.to_string())
-}
-
 // (id, label, on at start); the overlay's own defaults in index.html must match
 // Which runes, stacks and Roshan calls talk is set per role in Customize, so the tray only has the master switch
 const TOGGLES: [(&str, &str, bool); 3] = [
@@ -209,7 +192,7 @@ fn main() {
                 })
                 .build(),
         )
-        .invoke_handler(tauri::generate_handler![stratz, load_token, save_token, get_settings, set_setting, load_match, save_match])
+        .invoke_handler(tauri::generate_handler![stratz, load_token, save_token, get_settings, set_setting])
         .setup(|app| {
             let saved = load_settings(app.handle());
             // another app may already own the combination; the tray item still works then
@@ -272,19 +255,6 @@ fn main() {
                     draft.set_position(tauri::PhysicalPosition::new(x as i32, y as i32))?;
                 }
             }
-            // Match summary: centered, about the draft helper's size
-            let summary = app.get_webview_window("summary").unwrap();
-            if let Some(m) = summary.current_monitor()? {
-                let (mp, ms) = (m.position(), m.size());
-                let w = (ms.height as f64 * 0.55) as u32;
-                let h = (ms.height as f64 * 0.84) as u32;
-                summary.set_size(tauri::PhysicalSize::new(w, h))?;
-                summary.set_position(tauri::PhysicalPosition::new(
-                    mp.x + (ms.width as i32 - w as i32) / 2,
-                    mp.y + (ms.height as i32 - h as i32) / 2,
-                ))?;
-            }
-
             let handle = app.handle().clone();
             draft.on_window_event(move |e| {
                 if let WindowEvent::Moved(p) = e {
@@ -297,7 +267,6 @@ fn main() {
 
             let menu = Menu::new(app)?;
             menu.append(&MenuItem::with_id(app, "draft", "Draft helper", true, None::<&str>)?)?;
-            menu.append(&MenuItem::with_id(app, "summary", "Last match", true, None::<&str>)?)?;
             menu.append(&MenuItem::with_id(app, "settings", "Customize overlay   Ctrl+Shift+D", true, None::<&str>)?)?;
             menu.append(&PredefinedMenuItem::separator(app)?)?;
             for (id, label, on) in TOGGLES {
@@ -334,7 +303,7 @@ fn main() {
                         app.exit(0);
                         return;
                     }
-                    if id == "draft" || id == "summary" || id == "settings" {
+                    if id == "draft" || id == "settings" {
                         if let Some(w) = app.get_webview_window(id) {
                             let _ = w.show();
                             let _ = w.set_focus();
