@@ -169,13 +169,11 @@ fn save_match(app: tauri::AppHandle, json: String) -> Result<(), String> {
 }
 
 // (id, label, on at start); the overlay's own defaults in index.html must match
-const TOGGLES: [(&str, &str, bool); 6] = [
+// Which runes, stacks and Roshan calls talk is set per role in Customize, so the tray only has the master switch
+const TOGGLES: [(&str, &str, bool); 3] = [
     ("show", "Show timers", true),
     ("icons", "Icon view", false),
     ("voice", "Voice alerts", true),
-    ("voice_runes", "Voice: runes", true),
-    ("voice_stack", "Voice: stacks", true),
-    ("voice_roshan", "Voice: Roshan", true),
 ];
 
 // Recorded alert voices: folder names under app/src/voice (tools/make_voice.py). The first is the default.

@@ -1,31 +1,31 @@
 // What each role sees and hears, from docs/research/SUMMARY.md (role table). Positions 1-5.
 export const ROLE_NAMES = { 1: 'Carry', 2: 'Mid', 3: 'Offlane', 4: 'Soft support', 5: 'Hard support' };
 
-// show, dim (faint, never gold-loud) or hide, per position 1..5. Parts not listed always show.
-const VIEW = {
-  water:  ['hide', 'show', 'hide', 'show', 'hide'],
-  power:  ['hide', 'show', 'dim', 'show', 'show'],
-  // mids asked to see every rune at full strength (2026-10-26)
-  wisdom: ['dim', 'show', 'show', 'show', 'show'],
-  lotus:  ['dim', 'show', 'show', 'show', 'show'],
-  stack:  ['hide', 'dim', 'dim', 'show', 'show'],
-  wards:  ['hide', 'show', 'dim', 'show', 'show'],
+// One Show and one Voice switch per part per role, and the Customize window shows exactly these:
+// no other rule quietly hides or mutes anything. Each string is the default for Carry, Mid, Offlane,
+// Pos 4, Pos 5 (1 = on), from the role table in docs/research/SUMMARY.md; you change them in Customize.
+// [id, label in Customize, can it talk]. Aegis goes with Roshan.
+export const ROLE_PARTS = [
+  ['water', 'Water runes', true], ['power', 'Power rune', true], ['bounty', 'Bounty runes', true],
+  ['wisdom', 'Wisdom shrines', true], ['lotus', 'Lotus pools', true], ['stack', 'Stack camps', true],
+  ['roshan', 'Roshan and Aegis', true], ['tormentor', 'Tormentor', false], ['glyphs', 'Glyphs', false],
+  ['wards', 'Wards', false], ['items', 'Items now', false],
+];
+const DEFAULTS = {
+  show: { water: '01010', power: '01011', wisdom: '01111', lotus: '01111', stack: '00011', wards: '01011' },
+  voice: { water: '01010', power: '01010', bounty: '00011', wisdom: '00111', lotus: '00110', stack: '00011', roshan: '11111' },
 };
-export const roleView = (part, pos) => (pos ? VIEW[part]?.[pos - 1] : null) ?? 'show';
-
-// Who gets a voice call. With no role known, everything talks, as before roles existed.
-// Power runes matter to mids until 12:00 (all game with a Bottle) and to pos 4 until 12:00.
-export function voiced(kind, pos, t, hasBottle = false) {
+const talks = part => ROLE_PARTS.some(([id, , v]) => id === part && v);
+export const roleKey = (pos, part, kind) => `role${pos}_${part}_${kind}`;
+export function roleDefault(pos, part, kind) {
+  if (kind === 'voice' && !talks(part)) return false;
+  return (DEFAULTS[kind][part] ?? '11111')[pos - 1] === '1';
+}
+// What the overlay does right now. With no role known yet, everything shows and talks.
+export function partOn(settings, pos, part, kind) {
+  if (kind === 'voice' && !talks(part)) return false;
   if (!pos) return true;
-  switch (kind) {
-    case 'power': return (pos === 2 && (t < 720 || hasBottle)) || (pos === 4 && t < 720);
-    case 'water': return pos === 2 || pos === 4;
-    case 'bounty': return t < 60 || pos === 4 || pos === 5;   // everyone grabs one at the horn
-    case 'wisdom': return pos >= 3;
-    case 'lotus': return pos === 3 || pos === 4;
-    case 'stack': return pos >= 4;
-    default: return true;
-  }
+  return settings[roleKey(pos, part, kind)] ?? roleDefault(pos, part, kind);
 }
 
 // Which lane a map spot is in. Mid runs corner to corner; top lane is the upper-left half, bottom the

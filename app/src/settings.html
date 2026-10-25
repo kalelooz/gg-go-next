@@ -39,6 +39,25 @@ h2{margin:16px 0 4px;padding-bottom:5px;font-size:12px;font-weight:600;text-tran
 .opt input:checked::after{transform:translateX(14px);background:var(--on)}
 .opt input:disabled{opacity:.4}
 select{font:inherit;color:var(--ink);background:var(--well);border:1px solid var(--line);border-radius:3px;padding:4px 6px;margin:4px 8px}
+/* per-role table: what it is, then its Show and Voice switches */
+.tabs{display:flex;margin:6px 8px 4px}
+.tabs button{flex:1;font:inherit;font-size:13px;color:var(--ink);background:var(--well);border:1px solid var(--line);margin-left:-1px;padding:6px 0;cursor:pointer}
+.tabs button:first-child{border-radius:3px 0 0 3px;margin-left:0}
+.tabs button:last-child{border-radius:0 3px 3px 0}
+.tabs button[aria-pressed=true]{background:var(--gold);color:#111;border-color:var(--gold);font-weight:600}
+.note{margin:2px 8px 8px;color:var(--label);font-size:13px}
+.note b{color:var(--ink);font-weight:600}
+.th,.rp{display:grid;grid-template-columns:1fr 54px 54px;column-gap:6px;align-items:center;padding:7px 8px;border-radius:3px}
+.th{padding-bottom:2px;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--label)}
+.th span{text-align:center}
+.rp:hover,.rp:focus-within{background:var(--well)}
+.rp b{font-weight:600;color:var(--hi)}
+.rp small{display:block;color:var(--label);font-size:13px}
+.rp input{appearance:none;justify-self:center;margin:0;width:30px;height:16px;border-radius:8px;background:#0008;border:1px solid var(--line);position:relative;cursor:pointer}
+.rp input::after{content:'';position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:var(--label);transition:transform .15s,background .15s}
+.rp input:checked{background:color-mix(in srgb,var(--on) 35%,transparent);border-color:var(--on)}
+.rp input:checked::after{transform:translateX(14px);background:var(--on)}
+.rp .na{text-align:center;color:var(--label);font-size:12px}
 
 /* right: the overlay running on a made-up game, on a dark terrain backdrop */
 #preview{border-left:1px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:10px}
@@ -65,46 +84,39 @@ select{font:inherit;color:var(--ink);background:var(--well);border:1px solid var
   </aside>
 </main>
 <script type="module">
+import { ROLE_NAMES, ROLE_PARTS, roleKey, roleDefault } from './roles.js';
 const { invoke } = window.__TAURI__.core;
 const win = window.__TAURI__.window.getCurrentWindow();
 
-// id, label, what it does, default; el_<part> ids show or hide that part of the overlay
+// what each per-role part is, under its name in the table
+const WHAT = {
+  water: 'At 2:00 and 4:00 only. Mids use them to refill a Bottle.',
+  power: 'Every 2 minutes from 6:00, top or bottom river.',
+  bounty: 'Gold runes every 4 minutes, starting at 0:00.',
+  wisdom: 'Experience shrines every 7 minutes.',
+  lotus: 'A healing lotus every 3 minutes.',
+  stack: 'Pull a camp at :53 so a second one spawns.',
+  roshan: 'His pit, when he moves, when he can be back, and the Aegis.',
+  tormentor: 'Which side it\'s on, from 20:00.',
+  glyphs: 'Green while the enemy glyph is down, so you know when to push.',
+  wards: 'How many wards your team has up and the next one to run out.',
+  items: 'What players on your hero finish around this minute, with win rates.',
+};
+// id, label, what it does, default; el_<part> ids show or hide that part of the overlay for every role
 const GROUPS = [
-  ['Your role', [
-    ['el_roleline', 'Show my role in game', 'A small line at the top: "Playing as Carry". If it guessed wrong, press Ctrl+Shift+D and pick the right one.'],
-    ['role_filter', 'Fit the overlay to my role', 'Hides or fades what your role rarely needs, and only says what matters to you. A carry won\'t hear power runes; supports hear stacks.'],
-  ]],
-  ['Timers', [
-    ['el_water', 'Water runes', 'At 2:00 and 4:00 only. Mids use them to refill a Bottle.'],
-    ['el_power', 'Power rune', 'Every 2 minutes from 6:00. Mids and pos 4s fight for it.'],
-    ['el_bounty', 'Bounty runes', 'Gold runes every 4 minutes, starting at 0:00.'],
-    ['el_wisdom', 'Wisdom shrines', 'Experience shrines every 7 minutes.'],
-    ['el_lotus', 'Lotus pools', 'A healing lotus every 3 minutes.'],
-    ['el_stack', 'Stack camps', 'Pull a camp at :53 so a second one spawns.'],
-    ['el_roshan', 'Roshan', 'His pit, when he moves, and when he can be back.'],
-    ['el_tormentor', 'Tormentor', 'Which side it\'s on, from 20:00.'],
-    ['el_aegis', 'Aegis', 'Time left on the Aegis after Roshan dies.'],
-    ['el_glyphs', 'Glyphs', 'Green while the enemy glyph is down, so you know when to push.'],
-  ]],
   ['Top strip', [
     ['el_dn', 'Day and night', 'Time to the next switch, and Night Stalker\'s night.'],
     ['el_tp', 'TP scroll', 'Ready, on cooldown, or missing.'],
     ['el_bb', 'Buyback', 'Ready, on cooldown, or how much gold you\'re short.'],
     ['el_cr', 'Courier', 'Only shows while your courier is dead.'],
   ]],
-  ['Panels', [
-    ['el_wards', 'Wards', 'How many wards your team has up and the next one to run out.'],
-    ['el_items', 'Items now', 'What players on your hero finish around this minute, with win rates.'],
-  ]],
   ['Style', [
+    ['el_roleline', 'Show my role in game', 'A small line at the top: "Playing as Mid". If it guessed wrong, pick the right role above.'],
     ['icons', 'Icon view', 'Dota\'s icons instead of the timer names.', false],
     ['jokes', 'Jokes', 'A little humour when the map is dark or you have no TP.'],
   ]],
   ['Voice', [
-    ['voice', 'Voice alerts', 'Says the important timers out loud.'],
-    ['voice_runes', 'Runes', 'Calls runes 20 seconds before they spawn.'],
-    ['voice_stack', 'Stacks', 'Says "stack in 5" before :53.'],
-    ['voice_roshan', 'Roshan', 'His moves, his respawn, and the Aegis running out.'],
+    ['voice', 'Voice alerts', 'Turns every call off at once. Which ones talk is set per role above.'],
   ]],
 ];
 // same list as VOICES in main.rs
@@ -116,34 +128,76 @@ const value = (id, def = true) => saved[id] ?? def;
 const list = document.getElementById('list');
 // same list as ROLES in main.rs
 const ROLES = [['auto', 'Auto (guess from your lane)'], ['1', 'Carry'], ['2', 'Mid'], ['3', 'Offlane'], ['4', 'Soft support'], ['5', 'Hard support']];
-const rolePick = `<label class="opt" style="grid-template-columns:1fr"><b>Role</b><select id="role">${ROLES.map(([v, l]) =>
+const rolePick = `<label class="opt" style="grid-template-columns:1fr"><b>I'm playing</b><select id="role">${ROLES.map(([v, l]) =>
   `<option value="${v}" ${value('role', 'auto') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`;
-list.innerHTML = GROUPS.map(([name, opts], gi) => `<h2>${name}</h2>` + (gi === 0 ? rolePick : '') + opts.map(([id, label, what, def]) =>
-  `<label class="opt" data-id="${id}"><input type="checkbox" id="${id}" ${value(id, def) ? 'checked' : ''}><b>${label}</b><small>${what}</small></label>`).join('')).join('')
-  + `<label class="opt" style="grid-template-columns:1fr"><b>Voice</b><select id="voice_pick">${VOICES.map(([v, l]) =>
-    `<option value="${v}" ${value('voice_pick', 'am_michael') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`;
+// The table opens on the role you're playing: the one you picked, or the overlay's current guess
+const playing = () => {
+  const r = document.getElementById('role')?.value ?? value('role', 'auto');
+  if (/^[1-5]$/.test(r)) return Number(r);
+  try { return Number(localStorage.getItem('rolePos')) || 4; } catch { return 4; }
+};
+let editing = playing();
+const roleHtml = () => {
+  const tabs = [1, 2, 3, 4, 5].map(n => `<button type="button" data-tab="${n}" aria-pressed="${n === editing}">${ROLE_NAMES[n]}</button>`).join('');
+  const now = playing();
+  const auto = value('role', 'auto') === 'auto';
+  const rows = ROLE_PARTS.map(([part, label, canTalk]) => {
+    const sw = kind => { const id = roleKey(editing, part, kind); return `<input type="checkbox" id="${id}" aria-label="${label}: ${kind === 'show' ? 'show' : 'voice'} for ${ROLE_NAMES[editing]}" ${value(id, roleDefault(editing, part, kind)) ? 'checked' : ''}>`; };
+    return `<div class="rp" data-part="${part}"><span><b>${label}</b><small>${WHAT[part]}</small></span>${sw('show')}${canTalk ? sw('voice') : '<span class="na">no voice</span>'}</div>`;
+  }).join('');
+  return `<div class="tabs" role="group" aria-label="Role to set up">${tabs}</div>
+    <p class="note">${editing === now ? `This is the role you're playing now${auto ? ' (guessed)' : ''}, so the overlay uses these switches.` : `You're playing <b>${ROLE_NAMES[now]}</b>${auto ? ' (guessed)' : ''}; these switches take over when you play ${ROLE_NAMES[editing]}.`}
+    What you see here is exactly what shows and what talks.</p>
+    <div class="th"><span></span><span>Show</span><span>Voice</span></div>${rows}`;
+};
+const render = () => {
+  list.innerHTML = `<h2>Your role</h2>${rolePick}<div id="perRole">${roleHtml()}</div>` + GROUPS.map(([name, opts]) => `<h2>${name}</h2>` + opts.map(([id, label, what, def]) =>
+    `<label class="opt" data-id="${id}"><input type="checkbox" id="${id}" ${value(id, def) ? 'checked' : ''}><b>${label}</b><small>${what}</small></label>`).join('')).join('')
+    + `<label class="opt" style="grid-template-columns:1fr"><b>Voice</b><select id="voice_pick">${VOICES.map(([v, l]) =>
+      `<option value="${v}" ${value('voice_pick', 'am_michael') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`;
+  document.getElementById('voice_pick').disabled = !document.getElementById('voice').checked;
+};
+render();
+const redrawRoles = () => { document.getElementById('perRole').innerHTML = roleHtml(); };
 
 const demo = document.getElementById('demo');
 const tell = (id, v, animate = true) => demo.contentWindow?.postMessage([id, v, animate], '*');
-// the voice sub-switches only matter while voice is on
-const voiceSubs = () => ['voice_runes', 'voice_stack', 'voice_roshan', 'voice_pick'].forEach(id => document.getElementById(id).disabled = !document.getElementById('voice').checked);
-voiceSubs();
+// the preview shows the role being edited, with that role's switches
+const previewRole = (animate = false) => {
+  tell('role', String(editing), animate);
+  for (const [part, , canTalk] of ROLE_PARTS) for (const kind of canTalk ? ['show', 'voice'] : ['show']) {
+    const id = roleKey(editing, part, kind);
+    tell(id, value(id, roleDefault(editing, part, kind)), animate);
+  }
+};
 
 list.addEventListener('change', e => {
   const el = e.target, v = el.type === 'checkbox' ? el.checked : el.value;
+  saved[el.id] = v;
   invoke('set_setting', { id: el.id, value: v }).catch(() => {});
   tell(el.id, v);
-  if (el.id === 'voice') voiceSubs();
+  if (el.id === 'voice') document.getElementById('voice_pick').disabled = !v;
+  if (el.id === 'role') { if (/^[1-5]$/.test(v)) editing = Number(v); redrawRoles(); previewRole(true); }
+});
+list.addEventListener('click', e => {
+  const b = e.target.closest('[data-tab]');
+  if (!b) return;
+  editing = Number(b.dataset.tab); redrawRoles(); previewRole(true);
+  document.querySelector(`[data-tab="${editing}"]`)?.focus();
 });
 // point at the part in the preview
-const partOf = el => el.closest('.opt')?.dataset.id?.match(/^el_(.+)/)?.[1] || null;
+const partOf = el => el.closest('.rp')?.dataset.part || el.closest('.opt')?.dataset.id?.match(/^el_(.+)/)?.[1] || null;
 list.addEventListener('mouseover', e => tell('highlight', partOf(e.target)));
 list.addEventListener('mouseleave', () => tell('highlight', null));
 list.addEventListener('focusin', e => tell('highlight', partOf(e.target)));
+// the overlay's guess can change while this is open
+addEventListener('storage', e => { if (e.key === 'rolePos') redrawRoles(); });
 
 // the preview starts with everything on, so give it the current switches without animating
-demo.addEventListener('load', () => setTimeout(() =>
-  { list.querySelectorAll('input').forEach(i => tell(i.id, i.checked, false)); tell('role', document.getElementById('role').value, false); }, 300));
+demo.addEventListener('load', () => setTimeout(() => {
+  list.querySelectorAll('.opt input').forEach(i => tell(i.id, i.checked, false));
+  previewRole(false);
+}, 300));
 
 const hide = () => win.hide();
 document.getElementById('close').onclick = hide;

@@ -33,6 +33,9 @@ assert.equal(untilNext(230, SCHEDULES.water), 10);
 assert.equal(untilNext(240, SCHEDULES.water), Infinity);
 assert.equal(untilNext(345, SCHEDULES.water), Infinity);        // no water call next to the 6:00 power rune
 assert.equal(untilNext(345, SCHEDULES.power), 15);
+// the overlay's clock has fractions; every one of these must still see the 4:00 water rune (it blinked before)
+for (let t = 120.001; t < 240; t += 0.137) assert.notEqual(untilNext(t, SCHEDULES.water), Infinity, `water hidden at ${t}`);
+assert.equal(untilNext(136.37, SCHEDULES.water), 240 - 136.37);
 
 // events as they appear in our logs (Radiant pushing Dire)
 assert.deepEqual(buildingLost({ type: 'CHAT_MESSAGE_TOWER_KILL', value: 2, value3: 1 }), { team: 'dire', kind: 't1' });

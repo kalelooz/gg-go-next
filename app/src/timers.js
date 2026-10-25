@@ -8,10 +8,12 @@ export const SCHEDULES = {
   water: { label: 'Water runes', start: 120, every: 120, last: 240 },
 };
 
-// Seconds until the next spawn strictly after t; Infinity once a schedule with a `last` spawn is over
+// Seconds until the next spawn strictly after t; Infinity once a schedule with a `last` spawn is over.
+// The overlay's clock has fractions, so the next spawn is worked out as a whole multiple of `every`:
+// t + every - ((t - start) % every) gave 240.00000000000003 for a 4:00 spawn and hid the water row at random.
 export function untilNext(t, { start, every, last = Infinity }) {
   if (t < start) return start - t;
-  const next = t + every - ((t - start) % every);
+  const next = start + (Math.floor((t - start) / every) + 1) * every;
   return next > last ? Infinity : next - t;
 }
 

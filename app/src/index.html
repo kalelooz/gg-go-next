@@ -74,8 +74,9 @@ body{font-family:Bahnschrift,'Segoe UI',sans-serif;font-stretch:semi-condensed;c
 #items .hint .nm{white-space:normal;font-weight:400;line-height:1.25;color:rgb(255 255 255 / .9)}
 #items .hint.skip img{filter:grayscale(1) brightness(.7)}
 [hidden]{display:none!important}
-/* parts switched off in the Customize window; they slide out, and back in when switched on */
-.off{display:none!important}
+/* parts switched off in the Customize window; they slide out, and back in when switched on.
+   Not called .off: that's the grey cooldown chip, and sharing the name hid the TP and buyback chips on cooldown */
+.partoff{display:none!important}
 .leave{opacity:0;transform:translateX(.8em);transition:opacity .25s,transform .25s}
 @keyframes arrive{from{opacity:0;transform:translateX(.8em)}}
 .arrive{animation:arrive .3s ease-out}
@@ -107,7 +108,7 @@ body{font-family:Bahnschrift,'Segoe UI',sans-serif;font-stretch:semi-condensed;c
 import { SCHEDULES, untilNext, untilStack, fmt, roshan, pits, AEGIS, TORMENTOR_AT,
   buildingLost, newGlyphs, glyphLoss, glyphUsed, glyphIn, dayNight, tpStatus, buybackStatus, courierStatus, newWards, trackWards, wardsLeft, wardLine, pickQuip, NO_TP, BUYBACK_SHORT, ROSH_LONELY } from './timers.js';
 import { itemsNow } from './items.js';
-import { ROLE_NAMES, roleView, voiced, laneAt, guessRole } from './roles.js';
+import { ROLE_NAMES, partOn, laneAt, guessRole } from './roles.js';
 import { matchupHints } from './matchups.js';
 import { HEROES } from './heroes.js';
 
@@ -139,25 +140,30 @@ const DUE = 15, MOVE_WARN = 30, RUNE_WARN = 20, STACK_WARN = 5;
 const SAY_NAME = { water: 'water runes', power: 'power rune', bounty: 'bounty', wisdom: 'wisdom', lotus: 'lotus' };
 const listOf = xs => (xs.length < 2 ? xs[0] : xs.slice(0, -1).join(', ') + ' and ' + xs.at(-1));
 const IN_GAME =['DOTA_GAMERULES_STATE_PRE_GAME', 'DOTA_GAMERULES_STATE_GAME_IN_PROGRESS'];
-const settings = { show: true, voice: !DEMO, voice_runes: true, voice_stack: true, voice_roshan: true, icons: false, jokes: true, voice_pick: 'am_michael', role: 'auto', role_filter: true };
+// roleN_<part>_show / _voice switches come from Customize; missing ones use roles.js defaults
+const settings = { show: true, voice: !DEMO, icons: false, jokes: true, voice_pick: 'am_michael', role: 'auto' };
 const spoken = new Set();
 const seenEvents = new Set();
 let map = null, gotAt = 0, matchId = null, roshanAt = null, aegisAt = null;
 let myTeam = null, glyphs = newGlyphs(), me = null, aegisMine = false, myId = null, couriers = null, wards = newWards();
 // role: picked in the tray, or guessed (roles.js) from the lane we stand in and STRATZ's position split
 let rolePos = null, roleSplit = null, splitFor = null, lanes = [], roleSince = 0, lastStack = -Infinity;
-const pos = () => (settings.role_filter ? rolePos : null);
 function updateRole() {
   const pick = settings.role === 'auto' ? guessRole(roleSplit, lanes.map(l => l.lane), myTeam) : Number(settings.role) || null;
   if (pick === rolePos) return;
   rolePos = pick; roleSince = Date.now();
+  // Customize opens on the role you're playing (same origin as that window, so localStorage is shared)
+  if (!DEMO) try { localStorage.setItem('rolePos', String(rolePos || '')); } catch {}
   if (me?.hero?.id > 0) loadItems(me.hero.id);
 }
-// part shown, faded or hidden for our role
-function fitRole(id) {
-  const v = roleView(id, pos());
-  document.getElementById(id)?.classList.toggle('roleoff', v === 'hide');
-  return v;
+// Your role's Show and Voice switches, exactly as Customize shows them
+const shows = part => partOn(settings, rolePos, part, 'show');
+const talks = part => partOn(settings, rolePos, part, 'voice');
+const PART_ROWS = { roshan: ['roshan', 'aegis'], glyphs: ['glyph_enemy', 'glyph_ours'] };
+function fitRole(part) {
+  const on = shows(part);
+  for (const id of PART_ROWS[part] || [part]) document.getElementById(id)?.classList.toggle('roleoff', !on);
+  return on;
 }
 
 const hud = document.getElementById('hud');
@@ -186,10 +192,11 @@ function playNext() {
   a.play().catch(fail);
 }
 // urgent lines (the stack pull) cut ahead of anything still queued
-function say(key, text, kind, clip, urgent = false) {
+// part: whose Voice switch decides (null when the caller already checked, like the rune list)
+function say(key, text, part, clip, urgent = false) {
   if (spoken.has(key)) return;
   spoken.add(key);
-  if (!settings.voice || !settings[kind]) return;
+  if (!settings.voice || (part && !talks(part))) return;
   if (urgent) {
     queue.length = 0;
     playing?.pause();
@@ -211,44 +218,45 @@ function tick() {
   // Runes spawning at the same moment are announced in one sentence, 20s early,
   // so they finish before the stack call at :48
   const soon = [];
-  const bottle = Object.values(me?.items || {}).some(i => i?.name === 'item_bottle');
   for (const id of ['water', 'power', 'bounty', 'wisdom', 'lotus']) {
-    const left = untilNext(t, SCHEDULES[id]), v = fitRole(id);
+    const left = untilNext(t, SCHEDULES[id]);
+    fitRole(id);
     // water runes are over after 4:00; their row goes and they're never spoken again
     if (id === 'water') document.getElementById('water').hidden = left === Infinity;
     if (left === Infinity) continue;
-    setRow(id, 'in ' + fmt(left), left <= RUNE_WARN && v !== 'dim', v === 'dim' ? 'dim' : null);
+    setRow(id, 'in ' + fmt(left), left <= RUNE_WARN);
     const key = id + Math.round(t + left);
-    if (left <= RUNE_WARN && !spoken.has(key)) { spoken.add(key); if (voiced(id, pos(), t, bottle)) soon.push(id); }
+    if (left <= RUNE_WARN && !spoken.has(key)) { spoken.add(key); if (talks(id)) soon.push(id); }
   }
   // always on, so a wrong guess gets noticed; it brightens for a few seconds when the role changes
   const rl = document.getElementById('roleline');
   rl.textContent = (rolePos ? 'Playing as ' + ROLE_NAMES[rolePos] + (settings.role === 'auto' ? ' (guess)' : '') : 'Role not known yet')
     + ' · Ctrl+Shift+D to change';
   rl.classList.toggle('fresh', Date.now() - roleSince < 8000);
-  if (soon.length) say('runes' + Math.round(t), listOf(soon.map(id => SAY_NAME[id])) + ' in 20 seconds', 'voice_runes', 'runes-' + soon.join('-'));
+  if (soon.length) say('runes' + Math.round(t), listOf(soon.map(id => SAY_NAME[id])) + ' in 20 seconds', null, 'runes-' + soon.join('-'));
 
   const st = untilStack(t);
   // camps first spawn at 1:00, so there's nothing to stack before that
   document.getElementById('stack').hidden = t < 60;
-  const sv = fitRole('stack');
-  setRow('stack', st <= DUE ? 'pull in ' + fmt(st) : 'pull at :53', st <= DUE && sv !== 'dim', sv === 'dim' ? 'dim' : null);
-  // with a role, only supports hear it, and at most every 2 minutes (it used to fire about 40 times a game)
-  if (st <= STACK_WARN && t > 60 && voiced('stack', pos(), t) && (!pos() || t - lastStack > 110)) {
+  fitRole('stack');
+  setRow('stack', st <= DUE ? 'pull in ' + fmt(st) : 'pull at :53', st <= DUE);
+  // at most every 2 minutes once your role is known (it used to fire about 40 times a game)
+  if (st <= STACK_WARN && t > 60 && (!rolePos || t - lastStack > 110)) {
     lastStack = t;
-    say('stack' + Math.round(t + st), 'Stack in 5', 'voice_stack', 'stack', true);
+    say('stack' + Math.round(t + st), 'Stack in 5', 'stack', 'stack', true);
   }
 
+  fitRole('roshan'); fitRole('tormentor'); fitRole('glyphs'); fitRole('items');
   const p = pits(t, map.daytime);
   const moving = p.moves && p.swapIn <= MOVE_WARN;
   const r = roshan(t, roshanAt);
   if (r.phase === 'dead') setRow('roshan', p.rosh + ', ' + r.text, false, 'dim');
   else if (moving) setRow('roshan', 'moves ' + p.tormentor + ' in ' + fmt(p.swapIn), true);
   else setRow('roshan', p.rosh + ', ' + (settings.jokes && roshanAt == null && t >= 1200 ? pickQuip(ROSH_LONELY, t) : r.text), r.phase === 'maybe', r.phase === 'up' ? 'good' : null);
-  if (moving && r.phase !== 'dead') say('rosh-move' + Math.round(t + p.swapIn), 'Roshan moves to the ' + p.tormentor + ' pit in 30 seconds', 'voice_roshan', 'rosh-move-' + p.tormentor);
+  if (moving && r.phase !== 'dead') say('rosh-move' + Math.round(t + p.swapIn), 'Roshan moves to the ' + p.tormentor + ' pit in 30 seconds', 'roshan', 'rosh-move-' + p.tormentor);
   if (roshanAt != null) {
-    if (r.phase === 'maybe') say('rosh-maybe' + roshanAt, 'Roshan can spawn now, ' + p.rosh + ' pit', 'voice_roshan', 'rosh-maybe-' + p.rosh);
-    if (r.phase === 'up') say('rosh-up' + roshanAt, 'Roshan is up, ' + p.rosh + ' pit', 'voice_roshan', 'rosh-up-' + p.rosh);
+    if (r.phase === 'maybe') say('rosh-maybe' + roshanAt, 'Roshan can spawn now, ' + p.rosh + ' pit', 'roshan', 'rosh-maybe-' + p.rosh);
+    if (r.phase === 'up') say('rosh-up' + roshanAt, 'Roshan is up, ' + p.rosh + ' pit', 'roshan', 'rosh-up-' + p.rosh);
   }
 
   // shortcut: no Tormentor kill event seen yet, so this shows location only, not whether it's alive
@@ -259,7 +267,7 @@ function tick() {
   const aegisLeft = aegisAt == null ? 0 : AEGIS - (t - aegisAt);
   document.getElementById('aegis').hidden = aegisLeft <= 0;
   setRow('aegis', (aegisMine ? 'yours, ' : '') + 'expires in ' + fmt(aegisLeft), aegisLeft <= 30, aegisMine ? 'good' : null);
-  if (aegisLeft > 0 && aegisLeft <= 30) say('aegis' + aegisAt, 'Aegis expires in 30 seconds', 'voice_roshan', 'aegis');
+  if (aegisLeft > 0 && aegisLeft <= 30) say('aegis' + aegisAt, 'Aegis expires in 30 seconds', 'roshan', 'aegis');
 
   renderStatus(t);
   renderItems(t);
@@ -453,18 +461,18 @@ listen('gsi', e => {
   } catch {}
 });
 // el_<part> settings show or hide one part of the overlay; glyphs covers both glyph rows
-const PARTS = { glyphs: ['glyph_enemy', 'glyph_ours'] };
+const PARTS = { glyphs: ['glyph_enemy', 'glyph_ours'], roshan: ['roshan', 'aegis'] };
 const partEls = k => (PARTS[k] || [k]).map(id => document.getElementById(id)).filter(Boolean);
 function showPart(k, on, animate) {
   for (const el of partEls(k)) {
     el.classList.remove('arrive', 'leave');
     if (on) {
-      el.classList.remove('off');
+      el.classList.remove('partoff');
       if (animate) { void el.offsetWidth; el.classList.add('arrive'); }
     } else if (animate) {
       el.classList.add('leave');
-      setTimeout(() => el.classList.contains('leave') && el.classList.add('off'), 250);
-    } else el.classList.add('off');
+      setTimeout(() => el.classList.contains('leave') && el.classList.add('partoff'), 250);
+    } else el.classList.add('partoff');
   }
 }
 function applySetting(id, on, animate = false) {
@@ -478,7 +486,7 @@ function applySetting(id, on, animate = false) {
   settings[id] = on;
   if (id === 'icons') document.body.classList.toggle('icons', on);
   if (id.startsWith('el_')) showPart(id.slice(3), on, animate);
-  if (id === 'role' || id === 'role_filter') updateRole();
+  if (id === 'role') updateRole();
 }
 listen('settings', e => applySetting(...e.payload, true));
 // toggles saved from the last run (the tray only sends changes)

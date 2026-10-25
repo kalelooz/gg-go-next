@@ -1,20 +1,31 @@
 import assert from 'node:assert/strict';
-import { roleView, voiced, laneAt, guessRole } from './roles.js';
+import { partOn, roleDefault, roleKey, ROLE_PARTS, laneAt, guessRole } from './roles.js';
 
-assert.equal(roleView('power', 1), 'hide');
-assert.equal(roleView('power', 2), 'show');
-assert.equal(roleView('roshan', 1), 'show');          // parts not in the table always show
-assert.equal(roleView('stack', null), 'show');        // no role: everything shows
+// defaults from the role table
+assert.equal(roleDefault(1, 'power', 'show'), false);       // carries don't get the power rune
+assert.equal(roleDefault(2, 'power', 'show'), true);
+assert.equal(roleDefault(2, 'power', 'voice'), true);
+assert.equal(roleDefault(2, 'bounty', 'voice'), false);     // mids don't hear bounties unless they switch it on
+assert.equal(roleDefault(4, 'bounty', 'voice'), true);
+assert.equal(roleDefault(1, 'roshan', 'show'), true);       // parts not in the table show for everyone
+assert.equal(roleDefault(5, 'stack', 'voice'), true);
+assert.equal(roleDefault(2, 'stack', 'show'), false);
+assert.equal(roleDefault(3, 'wards', 'voice'), false);      // wards never talk
+// a mid sees every rune row (asked for 2026-10-26)
+for (const r of ['water', 'power', 'bounty', 'wisdom', 'lotus']) assert.equal(roleDefault(2, r, 'show'), true, r);
 
-assert.equal(voiced('power', 2, 600), true);
-assert.equal(voiced('power', 2, 900), false);
-assert.equal(voiced('power', 2, 900, true), true);    // a Bottle keeps runes worth it for mid
-assert.equal(voiced('power', 1, 360), false);
-assert.equal(voiced('bounty', 1, -20), true);         // horn bounties for everyone
-assert.equal(voiced('bounty', 1, 240), false);
-assert.equal(voiced('stack', 5, 600), true);
-assert.equal(voiced('stack', 2, 600), false);
-assert.equal(voiced('stack', null, 600), true);
+// what you set in Customize wins, and only for that role
+const s = { [roleKey(2, 'bounty', 'voice')]: true, [roleKey(1, 'power', 'show')]: true };
+assert.equal(partOn(s, 2, 'bounty', 'voice'), true);
+assert.equal(partOn(s, 4, 'bounty', 'voice'), true);
+assert.equal(partOn(s, 3, 'bounty', 'voice'), false);
+assert.equal(partOn(s, 1, 'power', 'show'), true);
+assert.equal(partOn({}, 1, 'power', 'show'), false);
+// no role known yet: everything shows and talks, except parts that never talk
+assert.equal(partOn({}, null, 'stack', 'voice'), true);
+assert.equal(partOn({}, null, 'water', 'show'), true);
+assert.equal(partOn({}, null, 'glyphs', 'voice'), false);
+assert.equal(new Set(ROLE_PARTS.map(p => p[0])).size, ROLE_PARTS.length);
 
 // Roshan's bottom pit from our logs sits in the lower-right half; fountains count as no lane
 assert.equal(laneAt(2574, -2663), 'bot');
@@ -31,12 +42,3 @@ assert.equal(guessRole(riki, ['top', 'top'], 'dire'), 1);                // Dire
 assert.equal(guessRole(null, ['top'], 'radiant'), 3);
 assert.equal(guessRole(null, [], 'radiant'), null);
 console.log('roles ok');
-
-// a mid sees every rune row at full strength and hears water and power runes (all game with a Bottle)
-{
-  for (const r of ['water', 'power', 'bounty', 'wisdom', 'lotus']) assert.equal(roleView(r, 2), 'show', r);
-  assert.equal(voiced('water', 2, 100), true);
-  assert.equal(voiced('power', 2, 1500, true), true);
-  assert.equal(voiced('power', 2, 1500, false), false);
-}
-console.log('roles mid ok');
