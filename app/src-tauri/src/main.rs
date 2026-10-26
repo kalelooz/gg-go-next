@@ -233,17 +233,17 @@ fn main() {
             }
             bar.set_ignore_cursor_events(true)?;
 
-            // Skill bar marker over Dota's ability buttons: 800x96 at 1080p from x 560, y 846, scaled with height
+            // Skill bar marker over Dota's ability buttons: 1120x220 at 1080p from x 400, y 790, scaled with height
             // and kept centered like Dota's bottom HUD (positions in skillbar.html)
             let sk = app.get_webview_window("skillbar").unwrap();
             if let Some(m) = sk.current_monitor()? {
                 let (mp, ms) = (m.position(), m.size());
                 let k = ms.height as f64 / 1080.0;
-                let (w, h) = ((800.0 * k) as u32, (96.0 * k) as u32);
+                let (w, h) = ((1120.0 * k) as u32, (220.0 * k) as u32);
                 sk.set_size(tauri::PhysicalSize::new(w, h))?;
                 sk.set_position(tauri::PhysicalPosition::new(
-                    mp.x + ms.width as i32 / 2 - (400.0 * k) as i32,
-                    mp.y + (846.0 * k) as i32,
+                    mp.x + ms.width as i32 / 2 - (560.0 * k) as i32,
+                    mp.y + (790.0 * k) as i32,
                 ))?;
             }
             sk.set_ignore_cursor_events(true)?;

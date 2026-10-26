@@ -4,39 +4,45 @@
 <meta charset="utf-8">
 <title>Dota Helper skill bar</title>
 <style>
-/* Sits on Dota's ability bar and marks the "+" to click. The window is 800x96 in 1080p units, from
-   x 560 and y 846 (see main.rs), so 1 unit = 100vw/800. Measured off a 1920x1080 screenshot of Luna:
-   level-up "+" buttons span y 902-935, ability centers are 65 apart, the talent tree is at x 742. */
+/* Sits on Dota's ability bar and marks what to click. The window is 1120x220 in 1080p units, from x 400
+   and y 790 (see main.rs), so 1 unit = 100vw/1120 and a screen spot (x, y) is (x - 400, y - 790) here.
+   Measured off a 1920x1080 screenshot of Luna: level-up "+" buttons y 902-935, ability boxes y 942-1002,
+   ability centers 65 apart, talent tree centered at 742, 975. */
 html,body{margin:0;height:100%;background:transparent;overflow:hidden}
-body{--u:calc(100vw / 800);font-family:Bahnschrift,'Segoe UI',sans-serif;font-stretch:semi-condensed;user-select:none;color:#fff}
+body{--u:calc(100vw / 1120);font-family:Bahnschrift,'Segoe UI',sans-serif;font-stretch:semi-condensed;user-select:none;color:#fff}
 #bar{visibility:hidden}
 #bar.on{visibility:visible}
-.lbl{position:absolute;white-space:nowrap;font-size:calc(15 * var(--u));font-weight:600;line-height:1;
-  padding:calc(4 * var(--u)) calc(7 * var(--u));background:rgb(0 0 0 / .82);border:calc(1.5 * var(--u)) solid #FFD24A;
-  border-radius:calc(4 * var(--u));text-shadow:0 1px 2px #000}
-.lbl small{font-size:.8em;color:#FFD24A;margin-left:.35em}
-/* the arrow under each label points at the button */
-.lbl::after{content:'';position:absolute;left:var(--tip,50%);top:100%;transform:translateX(-50%);
+.lbl{position:absolute;transform:translateX(-50%);font-size:calc(15 * var(--u));font-weight:600;line-height:1.15;text-align:center;
+  padding:calc(4 * var(--u)) calc(8 * var(--u));background:rgb(0 0 0 / .85);border:calc(1.5 * var(--u)) solid #FFD24A;
+  border-radius:calc(4 * var(--u));text-shadow:0 1px 2px #000;max-width:calc(280 * var(--u));width:max-content;box-sizing:border-box}
+.lbl small{font-size:.8em;color:#FFD24A;margin-left:.35em;white-space:nowrap}
+/* the arrow under each label points at what to click */
+.lbl::after{content:'';position:absolute;left:50%;top:100%;transform:translateX(-50%);
   border:calc(6 * var(--u)) solid transparent;border-top-color:#FFD24A}
-#skill{bottom:calc(48 * var(--u));transform:translateX(-50%)}
-/* gold frame around Dota's own "+" button */
-#plus{position:absolute;top:calc(56 * var(--u));width:calc(62 * var(--u));height:calc(35 * var(--u));transform:translateX(-50%);
-  border:calc(2.5 * var(--u)) solid #FFD24A;border-radius:calc(3 * var(--u));box-sizing:border-box;
+/* label bottom at y 890, just above the "+" */
+#skill{bottom:calc((220 - 100) * var(--u))}
+/* one gold frame around Dota's "+" and the ability box under it (y 899-1004) */
+#frame{position:absolute;top:calc(109 * var(--u));width:calc(64 * var(--u));height:calc(105 * var(--u));transform:translateX(-50%);
+  border:calc(2.5 * var(--u)) solid #FFD24A;border-radius:calc(4 * var(--u));box-sizing:border-box;
+  box-shadow:0 0 calc(10 * var(--u)) #FFD24A,inset 0 0 calc(6 * var(--u)) rgb(255 210 74 / .5);animation:pulse 1.2s ease-in-out infinite}
+/* ring around the talent tree (center 742, 975) and its label above it, bottom at y 928 */
+#ring{position:absolute;left:calc(342 * var(--u));top:calc(185 * var(--u));width:calc(74 * var(--u));height:calc(74 * var(--u));
+  transform:translate(-50%, -50%);border:calc(2.5 * var(--u)) solid #FFD24A;border-radius:50%;box-sizing:border-box;
   box-shadow:0 0 calc(10 * var(--u)) #FFD24A;animation:pulse 1.2s ease-in-out infinite}
+/* its right edge stops at x 802, before the first "+" (822), and the arrow stays on the tree */
+#talent{left:calc(342 * var(--u));bottom:calc((220 - 138) * var(--u));transform:translateX(calc(-100% + 60 * var(--u)))}
+#talent::after{left:calc(100% - 60 * var(--u))}
 @keyframes pulse{50%{box-shadow:0 0 calc(3 * var(--u)) #FFD24A;border-color:#ffe9a3}}
-/* talent label ends left of the first "+" so it never covers one; its arrow points down at the tree */
-#talent{bottom:calc(8 * var(--u));transform:translateX(-85%);--tip:85%}
 [hidden]{display:none!important}
-@media (prefers-reduced-motion:reduce){#plus{animation:none}}
+@media (prefers-reduced-motion:reduce){#frame,#ring{animation:none}}
 </style>
 </head>
 <body>
-<div id="bar"><div class="lbl" id="skill" hidden></div><div id="plus" hidden></div><div class="lbl" id="talent" hidden></div></div>
+<div id="bar"><div class="lbl" id="skill" hidden></div><div id="frame" hidden></div><div id="ring" hidden></div><div class="lbl" id="talent" hidden></div></div>
 <script type="module">
 // ability button center for slot i of n, in window units. Luna's 4 buttons are centered on x 949.
 // shortcut: measured on a 4-ability hero only; check a 5- or 6-ability hero (Invoker, Rubick) and adjust
-const center = (i, n) => 949 + (i - (n - 1) / 2) * 65 - 560;
-const TREE = 742 - 560;
+const center = (i, n) => 949 + (i - (n - 1) / 2) * 65 - 400;
 const IN_GAME = ['DOTA_GAMERULES_STATE_PRE_GAME', 'DOTA_GAMERULES_STATE_GAME_IN_PROGRESS'];
 const $ = id => document.getElementById(id), bar = $('bar');
 const at = (el, x) => { el.style.left = `calc(${x} * var(--u))`; };
@@ -48,15 +54,15 @@ listen('gsi', e => { try { const d = JSON.parse(e.payload); if (d.map) { state =
 // sent by the main overlay whenever its Level up lines change: { skill: {name, votes, of, slot, n}, talent: {text} }
 listen('skillpick', e => {
   const p = e.payload || {}, s = p.skill;
-  $('skill').hidden = $('plus').hidden = !s;
+  $('skill').hidden = $('frame').hidden = !s;
   if (s) {
     $('skill').innerHTML = '';
     $('skill').append(s.name);
     if (s.of) $('skill').insertAdjacentHTML('beforeend', `<small>${s.votes}/${s.of}</small>`);
-    at($('skill'), center(s.slot, s.n)); at($('plus'), center(s.slot, s.n));
+    at($('skill'), center(s.slot, s.n)); at($('frame'), center(s.slot, s.n));
   }
-  $('talent').hidden = !p.talent;
-  if (p.talent) { $('talent').textContent = p.talent.text; at($('talent'), TREE); }
+  $('talent').hidden = $('ring').hidden = !p.talent;
+  if (p.talent) $('talent').textContent = p.talent.text;
 });
 listen('settings', e => { if (e.payload[0] === 'show') show = e.payload[1]; });
 window.__TAURI__.core.invoke('get_settings').then(t => { if (t && 'show' in t) show = t.show; }).catch(() => {});
