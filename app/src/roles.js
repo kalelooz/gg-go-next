@@ -9,7 +9,8 @@ export const ROLE_PARTS = [
   ['water', 'Water runes', true], ['power', 'Power rune', true], ['bounty', 'Bounty runes', true],
   ['wisdom', 'Wisdom shrines', true], ['lotus', 'Lotus pools', true], ['stack', 'Stack camps', true],
   ['roshan', 'Roshan and Aegis', true], ['tormentor', 'Tormentor', false], ['glyphs', 'Glyphs', false],
-  ['wards', 'Wards', false], ['items', 'Items now', false],
+  ['wards', 'Wards', false], ['items', 'Items now', false], ['hints', 'Against their heroes', true],
+  ['levelup', 'Level up', true], ['tips', 'Tips', true],
 ];
 const DEFAULTS = {
   show: { water: '01010', power: '01011', wisdom: '01111', lotus: '01111', stack: '00011', wards: '01011' },

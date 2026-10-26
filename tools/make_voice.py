@@ -35,6 +35,15 @@ def lines():
         out[f'rosh-maybe-{pit}'] = f'{ROSH} could be up now, {pit} pit.'
         out[f'rosh-up-{pit}'] = f'{ROSH} is up, {pit} pit.'
     out['aegis'] = 'Aegis runs out in thirty seconds.'
+    # level-up, tips and matchup hints (app/src/skills.js, advice.js, matchup-rules.js); names stay on screen
+    out['levelup-skill'] = 'Skill point ready.'
+    out['levelup-ult'] = 'Level your ultimate.'
+    out['levelup-talent'] = 'Talent point ready.'
+    out['tip-deaths'] = "You're dying a lot. Stay near your towers and move with your team."
+    out['tip-buyback'] = 'Keep gold for buyback.'
+    out['tip-bkb'] = 'Your B K B is late.'
+    out['hint-invis'] = 'They have an invisible hero. Carry dust or a sentry.'
+    out['hint-vessel'] = 'They heal a lot. Get a Spirit Vessel.'
     return out
 
 

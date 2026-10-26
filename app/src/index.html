@@ -249,7 +249,8 @@ function tick() {
     say('stack' + Math.round(t + st), 'Stack in 5', 'stack', 'stack', true);
   }
 
-  fitRole('roshan'); fitRole('tormentor'); fitRole('glyphs'); fitRole('items');
+  // the items panel holds four parts with their own switches, so renderItems checks each one
+  fitRole('roshan'); fitRole('tormentor'); fitRole('glyphs');
   const p = pits(t, map.daytime);
   const moving = p.moves && p.swapIn <= MOVE_WARN;
   const r = roshan(t, roshanAt);
@@ -392,10 +393,11 @@ function skillTips() {
   // Invoker's orbs go to 7, so the 4-point rules don't fit him
   if (free.skill && !me.hero.name.endsWith('invoker')) {
     const s = nextSkill({ level: me.hero.level, attr: me.hero.attributes_level || 0, best: bestSkill, learnable, ult, orders });
-    if (s) out.push(`Level ${me.hero.level} point: ${skillData.shown.get(s.name) || s.name}` + (s.of ? ` (${s.votes} of ${s.of} top games).` : '.'));
+    if (s) out.push({ id: s.name === ult ? 'ult' : 'skill', clip: s.name === ult ? 'levelup-ult' : 'levelup-skill', key: 'lvl' + me.hero.level,
+      text: `Level ${me.hero.level} point: ${skillData.shown.get(s.name) || s.name}` + (s.of ? ` (${s.votes} of ${s.of} top games).` : '.') });
   }
   const t = talentTip({ hero: me.hero, free: free.talent, rows: skillData.talentRows, slots: skillData.slots, talentName: skillData.talentName });
-  if (t) out.push(t);
+  if (t) out.push({ id: 'talent', clip: 'levelup-talent', key: 'talent' + me.hero.level, text: t });
   return out;
 }
 // Enemy heroes we know about: the draft popup's enemy row (if typed in the last 2 hours) and every
@@ -428,19 +430,20 @@ function hintText(h) {
 function renderItems(t) {
   const el = document.getElementById('items');
   const ownedNames = new Set(Object.values(me?.items || {}).map(i => i?.name).filter(Boolean));
-  const hints = me?.hero?.name ? matchupHints({ hero: me.hero.name, pos: rolePos, minute: Math.floor(t / 60),
+  const hints = me?.hero?.name && shows('hints') ? matchupHints({ hero: me.hero.name, pos: rolePos, minute: Math.floor(t / 60),
     enemies: knownEnemies(), owned: ownedNames, buys: buysItem }).slice(0, 2) : [];
   let top = [];
-  if (itemRows) {
+  if (itemRows && shows('items')) {
     // skip what you already carry and lotus orbs, which are picked up, not bought
     const owned = new Set([...ownedNames].map(n => n.replace(/^item_/, '')));
     const skip = new Set([...itemNames.values()].filter(i => owned.has(i.shortName) || /lotus/.test(i.shortName)).map(i => i.id));
     top = itemsNow(itemRows, Math.max(0, Math.floor(t / 60)), skip);
   }
-  const tips = me?.hero?.name ? myTips(t, ownedNames) : [], lvl = skillTips();
+  const tips = me?.hero?.name && shows('tips') ? myTips(t, ownedNames) : [], lvl = shows('levelup') ? skillTips() : [];
+  speakPanel(hints, lvl, tips);
   el.hidden = !top.length && !hints.length && !tips.length && !lvl.length;
   // win rate: green at 55%+, red at 45% or less
-  el.innerHTML = (lvl.length ? '<div class="ih"><span>Level up</span></div>' + lvl.map(s => `<div class="it hint tip"><span class="nm">${s}</span></div>`).join('') + (top.length ? '<div class="ih vs"></div>' : '') : '')
+  el.innerHTML = (lvl.length ? '<div class="ih"><span>Level up</span></div>' + lvl.map(s => `<div class="it hint tip"><span class="nm">${s.text}</span></div>`).join('') + (top.length ? '<div class="ih vs"></div>' : '') : '')
     + (top.length ? '<div class="ih"><span>Items now</span><span>win</span></div>' : '') + top.map(i => {
     const it = itemNames.get(i.id), w = Math.round(i.win * 100);
     return `<div class="it"><img src="icons/items/${it?.shortName}.png" alt="" onerror="this.style.visibility='hidden'">
@@ -448,17 +451,33 @@ function renderItems(t) {
   }).join('') + (hints.length ? '<div class="ih vs"><span>Against their heroes</span></div>' : '') + hints.map(h =>
     `<div class="it hint ${h.action}"><img src="icons/items/${h.item.replace(/^item_/, '')}.png" alt="" onerror="this.style.visibility='hidden'">
       <span class="nm">${hintText(h)}</span></div>`).join('')
-    + (tips.length ? '<div class="ih vs"><span>Tips</span></div>' : '') + tips.map(s => `<div class="it hint tip"><span class="nm">${s}</span></div>`).join('');
+    + (tips.length ? '<div class="ih vs"><span>Tips</span></div>' : '') + tips.map(s => `<div class="it hint tip"><span class="nm">${s.text}</span></div>`).join('');
+}
+// Panel lines that talk. Level-up lines wait 10s so they don't nag while you're already clicking;
+// matchup hints with a clip speak once a game, tips each time their key moves on.
+const HINT_CLIP = { 'invis-dust': 'hint-invis', 'invis-dust-2': 'hint-invis', 'heal-vessel': 'hint-vessel', 'heal-vessel-2': 'hint-vessel' };
+const freeSince = new Map();
+function speakPanel(hints, lvl, tips) {
+  for (const h of hints) if (HINT_CLIP[h.id]) say('hint-' + HINT_CLIP[h.id], h.say, 'hints', HINT_CLIP[h.id]);
+  const now = Date.now(), live = new Set(lvl.map(l => l.key + l.id));
+  for (const k of freeSince.keys()) if (!live.has(k)) freeSince.delete(k);
+  for (const l of lvl) {
+    const k = l.key + l.id;
+    if (!freeSince.has(k)) freeSince.set(k, now);
+    if (now - freeSince.get(k) >= 10000) say(k, l.text, 'levelup', l.clip);
+  }
+  for (const x of tips) say(x.clip + x.key, x.text, 'tips', x.clip);
 }
 // advice.js rules about our own game: dying a lot, buyback gold, a late BKB (text only, no voice clips yet)
 function myTips(t, owned) {
   const minute = Math.floor(t / 60), key = me.hero.name.replace(/^npc_dota_hero_/, '');
   const bb = buybackStatus(me.hero, me.gold, t + map.game_time - map.clock_time);
+  // key: when to speak again. Deaths every 2 more, buyback and BKB every 5 minutes while they still apply
   return [
-    deathTip({ deaths: me.deaths, minute, pos: rolePos, owned, buys: buysItem }),
-    buybackTip({ pos: rolePos, minute, bb }),
-    bkbTip({ pos: rolePos, minute, heroKey: key, heroName: HERO_NAME[me.hero.name] || key, median: bkbMinute, owned }),
-  ].filter(Boolean).slice(0, 2);
+    { clip: 'tip-deaths', key: 'deaths' + Math.floor((me.deaths || 0) / 2), text: deathTip({ deaths: me.deaths, minute, pos: rolePos, owned, buys: buysItem }) },
+    { clip: 'tip-buyback', key: 'bb' + Math.floor(minute / 5), text: buybackTip({ pos: rolePos, minute, bb }) },
+    { clip: 'tip-bkb', key: 'bkb' + Math.floor(minute / 5), text: bkbTip({ pos: rolePos, minute, heroKey: key, heroName: HERO_NAME[me.hero.name] || key, median: bkbMinute, owned }) },
+  ].filter(x => x.text).slice(0, 2);
 }
 
 function renderWards(t) {

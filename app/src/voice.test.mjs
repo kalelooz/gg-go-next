@@ -13,7 +13,7 @@ for (const id of ORDER) {
 }
 // a role hears only some runes, so any of the runes spawning together can be asked for, in that order
 const subsets = xs => xs.flatMap((x, i) => [[x], ...subsets(xs.slice(i + 1)).map(s => [x, ...s])]);
-const need = new Set(['stack', 'aegis']);
+const need = new Set(['stack', 'aegis', 'levelup-skill', 'levelup-ult', 'levelup-talent', 'tip-deaths', 'tip-buyback', 'tip-bkb', 'hint-invis', 'hint-vessel']);
 for (const ids of spawnsAt.values()) for (const s of subsets(ids.sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b)))) need.add('runes-' + s.join('-'));
 for (const what of ['move', 'maybe', 'up']) for (const pit of ['top', 'bottom']) need.add(`rosh-${what}-${pit}`);
 
