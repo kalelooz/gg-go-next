@@ -4,10 +4,11 @@
 <meta charset="utf-8">
 <title>Dota Helper skill bar</title>
 <style>
-/* Sits on Dota's ability bar and marks what to click. The window is 1120x220 in 1080p units, from x 392
-   and y 790 (see main.rs), so 1 unit = 100vw/1120 and a screen spot (x, y) is (x - 392, y - 790) here.
+/* Sits on Dota's ability bar and marks what to click. The window is 1120x220 in 1080p units, from x 400
+   and y 790 (see main.rs), so 1 unit = 100vw/1120 and a screen spot (x, y) is (x - 400, y - 790) here.
    Measured off a 1920x1080 screenshot of Luna: level-up "+" buttons y 902-935, ability boxes y 942-1002,
-   ability centers 65 apart, talent tree centered at 742, 975. */
+   ability centers 65 apart, talent tree centered at 742, 975. Spectre (5 buttons, 2026-10-26): centers 58 apart, same
+   bar center 949, tree 110 left of the first button. Dota shrinks the buttons when a hero has more of them. */
 html,body{margin:0;height:100%;background:transparent;overflow:hidden}
 body{--u:calc(100vw / 1120);font-family:Bahnschrift,'Segoe UI',sans-serif;font-stretch:semi-condensed;user-select:none;color:#fff}
 #bar{visibility:hidden}
@@ -26,11 +27,11 @@ body{--u:calc(100vw / 1120);font-family:Bahnschrift,'Segoe UI',sans-serif;font-s
   border:calc(2.5 * var(--u)) solid #FFD24A;border-radius:calc(4 * var(--u));box-sizing:border-box;
   box-shadow:0 0 calc(10 * var(--u)) #FFD24A,inset 0 0 calc(6 * var(--u)) rgb(255 210 74 / .5);animation:pulse 1.2s ease-in-out infinite}
 /* ring around the talent tree (center 742, 975) and its label above it, bottom at y 928 */
-#ring{position:absolute;left:calc(350 * var(--u));top:calc(185 * var(--u));width:calc(74 * var(--u));height:calc(74 * var(--u));
+#ring{position:absolute;left:calc(342 * var(--u));top:calc(185 * var(--u));width:calc(74 * var(--u));height:calc(74 * var(--u));
   transform:translate(-50%, -50%);border:calc(2.5 * var(--u)) solid #FFD24A;border-radius:50%;box-sizing:border-box;
   box-shadow:0 0 calc(10 * var(--u)) #FFD24A;animation:pulse 1.2s ease-in-out infinite}
 /* its right edge stops at x 802, before the first "+" (822), and the arrow stays on the tree */
-#talent{left:calc(350 * var(--u));bottom:calc((220 - 138) * var(--u));transform:translateX(calc(-100% + 60 * var(--u)))}
+#talent{left:calc(342 * var(--u));bottom:calc((220 - 138) * var(--u));transform:translateX(calc(-100% + 60 * var(--u)))}
 #talent::after{left:calc(100% - 60 * var(--u))}
 @keyframes pulse{50%{box-shadow:0 0 calc(3 * var(--u)) #FFD24A;border-color:#ffe9a3}}
 [hidden]{display:none!important}
@@ -40,10 +41,12 @@ body{--u:calc(100vw / 1120);font-family:Bahnschrift,'Segoe UI',sans-serif;font-s
 <body>
 <div id="bar"><div class="lbl" id="skill" hidden></div><div id="frame" hidden></div><div id="ring" hidden></div><div class="lbl" id="talent" hidden></div></div>
 <script type="module">
-// ability button center for slot i of n, in window units. Luna's 4 buttons are centered on x 949.
-// shortcut: measured on a 4-ability hero only; check a 5- or 6-ability hero (Invoker, Rubick) and adjust
-// "- 400" not "- 392": the "+" marker sits 8 px left of the measured centers, asked for after seeing it in game (2026-10-26)
-const center = (i, n) => 949 + (i - (n - 1) / 2) * 65 - 400;
+// ability button spacing by how many buttons the bar has, centered on x 949 (Luna 4, Spectre 5)
+// shortcut: 6 is a guess from the 4 and 5 measurements; check Invoker or Rubick and adjust
+const pitch = n => n <= 4 ? 65 : n === 5 ? 58 : 52;
+const center = (i, n) => 949 + (i - (n - 1) / 2) * pitch(n) - 400;
+// the talent tree sits 110 left of the first button, so it moves with the bar's width
+const tree = n => center(0, n) - 110;
 const IN_GAME = ['DOTA_GAMERULES_STATE_PRE_GAME', 'DOTA_GAMERULES_STATE_GAME_IN_PROGRESS'];
 const $ = id => document.getElementById(id), bar = $('bar');
 const at = (el, x) => { el.style.left = `calc(${x} * var(--u))`; };
@@ -61,9 +64,10 @@ listen('skillpick', e => {
     $('skill').append(s.name);
     if (s.of) $('skill').insertAdjacentHTML('beforeend', `<small>${s.votes}/${s.of}</small>`);
     at($('skill'), center(s.slot, s.n)); at($('frame'), center(s.slot, s.n));
+    $('frame').style.width = `calc(${pitch(s.n) - 1} * var(--u))`;
   }
   $('talent').hidden = $('ring').hidden = !p.talent;
-  if (p.talent) $('talent').textContent = p.talent.text;
+  if (p.talent) { $('talent').textContent = p.talent.text; at($('talent'), tree(p.talent.n || 4)); at($('ring'), tree(p.talent.n || 4)); }
 });
 listen('settings', e => { if (e.payload[0] === 'show') show = e.payload[1]; });
 window.__TAURI__.core.invoke('get_settings').then(t => { if (t && 'show' in t) show = t.show; }).catch(() => {});

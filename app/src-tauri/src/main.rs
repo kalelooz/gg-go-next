@@ -242,8 +242,7 @@ fn main() {
                 let (w, h) = ((1120.0 * k) as u32, (220.0 * k) as u32);
                 sk.set_size(tauri::PhysicalSize::new(w, h))?;
                 sk.set_position(tauri::PhysicalPosition::new(
-                    // 8 px further left than measured: it sat a little right of the buttons in game (2026-10-26)
-                    mp.x + ms.width as i32 / 2 - (568.0 * k) as i32,
+                    mp.x + ms.width as i32 / 2 - (560.0 * k) as i32,
                     mp.y + (790.0 * k) as i32,
                 ))?;
             }

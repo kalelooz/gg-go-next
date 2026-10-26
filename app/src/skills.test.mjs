@@ -51,5 +51,9 @@ const luna = { ability0: { name: 'luna_lucent_beam' }, ability1: { name: 'luna_l
   ability3: { name: 'luna_eclipse', ultimate: true }, ability4: { name: 'plus_high_five' }, ability5: { name: 'seasonal_dark_carnival_pie' } };
 assert.deepEqual(buttonSlots(luna, new Set()), ['luna_lucent_beam', 'luna_lunar_orbit', 'luna_moon_glaive', 'luna_eclipse']);
 assert.deepEqual(buttonSlots({ a: { name: 'sniper_shrapnel' }, b: { name: 'sniper_keen_scope' } }, new Set(['sniper_keen_scope'])), ['sniper_shrapnel']);
+// Spectre: the feed sends Reality and Dota shows it, so the bar has 5 buttons (screenshot 2026-10-26)
+const spectre = ['spectre_spectral_dagger', 'spectre_shadow_step', 'spectre_dispersion', 'spectre_reality', 'spectre_haunt', 'plus_high_five']
+  .reduce((o, name, i) => ({ ...o, ['ability' + i]: { name } }), {});
+assert.equal(buttonSlots(spectre, new Set(['spectre_desolate'])).length, 5);
 assert.deepEqual(talentPick({ hero: { level: 10 }, free: 1, rows, slots }), { tier: 10, top: 5917, pct: 55, better: null });
 console.log('skill bar ok');

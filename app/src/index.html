@@ -406,9 +406,10 @@ function skillTips() {
   const free = freePoints(me.hero, bestSkill, learnable);
   const out = [];
   // Invoker's orbs go to 7, so the 4-point rules don't fit him
+  const buttons = buttonSlots(me.abilities, skillData.innate);
   if (free.skill && !me.hero.name.endsWith('invoker')) {
     const s = nextSkill({ level: me.hero.level, attr: me.hero.attributes_level || 0, best: bestSkill, learnable, ult, orders });
-    const buttons = buttonSlots(me.abilities, skillData.innate), slot = s ? buttons.indexOf(s.name) : -1;
+    const slot = s ? buttons.indexOf(s.name) : -1;
     if (s) out.push({ id: s.name === ult ? 'ult' : 'skill', clip: s.name === ult ? 'levelup-ult' : 'levelup-skill', key: 'lvl' + me.hero.level,
       text: `Level ${me.hero.level} point: ${skillData.shown.get(s.name) || s.name}` + (s.of ? ` (${s.votes} of ${s.of} top games).` : '.'),
       bar: slot < 0 ? null : { name: skillData.shown.get(s.name) || s.name, votes: s.votes, of: s.of, slot, n: buttons.length } });
@@ -416,7 +417,7 @@ function skillTips() {
   const to = { hero: me.hero, free: free.talent, rows: skillData.talentRows, slots: skillData.slots, talentName: skillData.talentName };
   const t = talentTip(to), tp = talentPick(to);
   if (t) out.push({ id: 'talent', clip: 'levelup-talent', key: 'talent' + me.hero.level, text: t,
-    bar: { text: tp.spare ? `Spare level ${tp.tier} talent` : tp.top ? `${skillData.talentName(tp.top)} · ${tp.pct}%` : `Level ${tp.tier} talent` } });
+    bar: { text: tp.spare ? `Spare level ${tp.tier} talent` : tp.top ? `${skillData.talentName(tp.top)} · ${tp.pct}%` : `Level ${tp.tier} talent`, n: buttons.length } });
   return out;
 }
 // Enemy heroes we know about: the draft popup's enemy row (if typed in the last 2 hours) and every
