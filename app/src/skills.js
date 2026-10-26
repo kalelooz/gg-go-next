@@ -10,34 +10,43 @@ const TIERS = [10, 15, 20, 25];
 export function freePoints(hero, best, learnable) {
   let skills = 0;
   for (const n of learnable) skills += best.get(n) || 0;
+  // Scepter gives Invoker's orbs a free level each (Valve's npc_dota_hero_invoker scepter_bonus_levels)
+  // shortcut: assumes the feed counts that level in; check once in a game with Scepter on Invoker
+  if (hero.aghanims_scepter) for (const n of learnable) if (ORB.test(n) && best.get(n)) skills--;
   const level = hero.level || 0;
   const taken = [1, 2, 3, 4, 5, 6, 7, 8].filter(i => hero['talent_' + i]).length;
   return {
     skills,
     // clamp: a grant STRATZ doesn't flag would push this negative
-    skill: Math.max(0, Math.min(level, 22) - (hero.attributes_level || 0) - skills),
+    // Invoke gives Invoker an extra point at hero levels 6, 12 and 18 (7.41b)
+    skill: Math.max(0, Math.min(level, 22) + ([...learnable].some(n => ORB.test(n)) ? [6, 12, 18].filter(l => l <= level).length : 0)
+      - (hero.attributes_level || 0) - skills),
     talent: Math.max(0, TALENT_AT.filter(l => l <= level).length - taken),
   };
 }
 
+// Invoker's orbs take up to 8 points (Valve's game files, 7.41f); everything else 4, ultimates 3
+const ORB = /^invoker_(quas|wex|exort)$/;
+const maxPoints = (name, ult) => name === ult ? 3 : ORB.test(name) ? 8 : 4;
+
 // guide games from STRATZ: their ability ids in learn order. Talents go; attribute points (0, 730) stay as
 // 'attr' so the n-th entry is still the n-th point. Tiny's games file Tree Grab as Toss, so drop any game
-// with more than 4 points in one ability (or 3 in the ultimate).
+// with more points in one ability than it can take.
 export function guideOrders(games, names, ultName) {
   const out = [];
   for (const ids of games) {
     const order = ids.map(id => (id === 0 || id === 730 ? 'attr' : names.get(id))).filter(Boolean);
     const count = new Map();
     for (const n of order) count.set(n, (count.get(n) || 0) + 1);
-    if ([...count].some(([n, c]) => n !== 'attr' && c > (n === ultName ? 3 : 4))) continue;
+    if ([...count].some(([n, c]) => n !== 'attr' && c > maxPoints(n, ultName))) continue;
     out.push(order);
   }
   return out;
 }
 
-// what can take the next point: basic abilities need hero level 1/3/5/7, the ultimate 6/12/18
+// what can take the next point: basic abilities need hero level 1/3/5/7 (Invoker's orbs on to 15), the ultimate 6/12/18
 const canLearn = (name, lv, level, ult) =>
-  name === ult ? lv < 3 && level >= 6 * (lv + 1) : lv < 4 && level >= 2 * lv + 1;
+  name === ult ? lv < 3 && level >= 6 * (lv + 1) : lv < maxPoints(name, ult) && level >= 2 * lv + 1;
 
 export function nextSkill({ level, attr = 0, best, learnable, ult, orders }) {
   // the ultimate goes in as soon as it can: 97-100% of games
@@ -98,5 +107,5 @@ export function talentTip(o) {
 // Dota's ability buttons, left to right: the feed's abilities in order, minus cosmetics, innates and hidden slots
 export function buttonSlots(abilities, innate) {
   return Object.values(abilities || {}).map(a => a?.name)
-    .filter(n => n && !/^(plus_|seasonal_)/.test(n) && !n.includes('hidden') && !innate.has(n));
+    .filter(n => n && !/^(plus_|seasonal_)/.test(n) && !n.includes('hidden') && (!innate.has(n) || n === 'invoker_invoke'));
 }

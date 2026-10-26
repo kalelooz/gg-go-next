@@ -401,25 +401,25 @@ async function loadSkills(heroId) {
 // "Level 7 point: Retaliate (9 of 10 top games)" and the talent line, while a point is free
 function skillTips() {
   if (!skillData || !me?.hero?.level) return [];
-  const ult = Object.values(me.abilities || {}).find(a => a?.ultimate)?.name;
+  // an innate "ultimate" (Invoker's Invoke) takes no points
+  const ult = Object.values(me.abilities || {}).find(a => a?.ultimate && !skillData.innate.has(a.name))?.name;
   const orders = guideOrders(skillData.ids, skillData.names, ult);
-  const inOrders = new Set(orders.flat().filter(n => n !== 'attr'));
+  const inOrders = new Set(orders.flat().filter(n => n !== 'attr' && !skillData.innate.has(n)));
   const learnable = inOrders.size ? new Set([...inOrders, ...(ult ? [ult] : [])]) : skillData.flagged;
   const free = freePoints(me.hero, bestSkill, learnable);
   const out = [];
-  // Invoker's orbs go to 7, so the 4-point rules don't fit him
   const buttons = buttonSlots(me.abilities, skillData.innate);
-  if (free.skill && !me.hero.name.endsWith('invoker')) {
+  if (free.skill) {
     const s = nextSkill({ level: me.hero.level, attr: me.hero.attributes_level || 0, best: bestSkill, learnable, ult, orders });
     const slot = s ? buttons.indexOf(s.name) : -1;
     if (s) out.push({ id: s.name === ult ? 'ult' : 'skill', clip: s.name === ult ? 'levelup-ult' : 'levelup-skill', key: 'lvl' + me.hero.level,
       text: `Level ${me.hero.level} point: ${skillData.shown.get(s.name) || s.name}` + (s.of ? ` (${s.votes} of ${s.of} top games).` : '.'),
-      bar: slot < 0 ? null : { name: skillData.shown.get(s.name) || s.name, votes: s.votes, of: s.of, slot, n: buttons.length } });
+      bar: slot < 0 ? null : { name: skillData.shown.get(s.name) || s.name, votes: s.votes, of: s.of, slot, n: buttons.length, hero: me.hero.name } });
   }
   const to = { hero: me.hero, free: free.talent, rows: skillData.talentRows, slots: skillData.slots, talentName: skillData.talentName };
   const t = talentTip(to), tp = talentPick(to);
   if (t) out.push({ id: 'talent', clip: 'levelup-talent', key: 'talent' + me.hero.level, text: t,
-    bar: { text: tp.spare ? `Spare level ${tp.tier} talent` : tp.top ? `${skillData.talentName(tp.top)} · ${tp.pct}%` : `Level ${tp.tier} talent`, n: buttons.length } });
+    bar: { text: tp.spare ? `Spare level ${tp.tier} talent` : tp.top ? `${skillData.talentName(tp.top)} · ${tp.pct}%` : `Level ${tp.tier} talent`, n: buttons.length, hero: me.hero.name } });
   return out;
 }
 // Enemy heroes we know about: the draft popup's enemy row (if typed in the last 2 hours) and every

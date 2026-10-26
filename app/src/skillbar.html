@@ -42,11 +42,13 @@ body{--u:calc(100vw / 1120);font-family:Bahnschrift,'Segoe UI',sans-serif;font-s
 <div id="bar"><div class="lbl" id="skill" hidden></div><div id="frame" hidden></div><div id="ring" hidden></div><div class="lbl" id="talent" hidden></div></div>
 <script type="module">
 // ability button spacing by how many buttons the bar has, centered on x 949 (Luna 4, Spectre 5)
-// shortcut: 6 is a guess from the 4 and 5 measurements; check Invoker or Rubick and adjust
-const pitch = n => n <= 4 ? 65 : n === 5 ? 58 : 52;
-const center = (i, n) => 949 + (i - (n - 1) / 2) * pitch(n) - 400;
+// Invoker (6 buttons, 2026-10-26): still 58 apart, but 12 left of center, since his orb widget sits right of the bar.
+// shortcut: 7+ buttons not measured; Rubick's 6 assumed centered like Spectre's 5 until a screenshot says otherwise
+const pitch = n => n <= 4 ? 65 : 58;
+const SHIFT = { npc_dota_hero_invoker: -12 };
+const center = (i, n, hero) => 949 + (SHIFT[hero] || 0) + (i - (n - 1) / 2) * pitch(n) - 400;
 // the talent tree sits 110 left of the first button, so it moves with the bar's width
-const tree = n => center(0, n) - 110;
+const tree = (n, hero) => center(0, n, hero) - 110;
 const IN_GAME = ['DOTA_GAMERULES_STATE_PRE_GAME', 'DOTA_GAMERULES_STATE_GAME_IN_PROGRESS'];
 const $ = id => document.getElementById(id), bar = $('bar');
 const at = (el, x) => { el.style.left = `calc(${x} * var(--u))`; };
@@ -63,11 +65,11 @@ listen('skillpick', e => {
     $('skill').innerHTML = '';
     $('skill').append(s.name);
     if (s.of) $('skill').insertAdjacentHTML('beforeend', `<small>${s.votes}/${s.of}</small>`);
-    at($('skill'), center(s.slot, s.n)); at($('frame'), center(s.slot, s.n));
+    at($('skill'), center(s.slot, s.n, s.hero)); at($('frame'), center(s.slot, s.n, s.hero));
     $('frame').style.width = `calc(${pitch(s.n) - 1} * var(--u))`;
   }
   $('talent').hidden = $('ring').hidden = !p.talent;
-  if (p.talent) { $('talent').textContent = p.talent.text; at($('talent'), tree(p.talent.n || 4)); at($('ring'), tree(p.talent.n || 4)); }
+  if (p.talent) { $('talent').textContent = p.talent.text; at($('talent'), tree(p.talent.n || 4, p.talent.hero)); at($('ring'), tree(p.talent.n || 4, p.talent.hero)); }
 });
 listen('settings', e => { if (e.payload[0] === 'show') show = e.payload[1]; });
 window.__TAURI__.core.invoke('get_settings').then(t => { if (t && 'show' in t) show = t.show; }).catch(() => {});

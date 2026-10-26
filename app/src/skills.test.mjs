@@ -56,4 +56,25 @@ const spectre = ['spectre_spectral_dagger', 'spectre_shadow_step', 'spectre_disp
   .reduce((o, name, i) => ({ ...o, ['ability' + i]: { name } }), {});
 assert.equal(buttonSlots(spectre, new Set(['spectre_desolate'])).length, 5);
 assert.deepEqual(talentPick({ hero: { level: 10 }, free: 1, rows, slots }), { tier: 10, top: 5917, pct: 55, better: null });
+// Invoker: orbs take 8 points (one every 2 levels, to 15), Invoke is innate and on the bar, so 6 buttons
+const inv = ['invoker_quas', 'invoker_wex', 'invoker_exort', 'invoker_empty1', 'invoker_empty2', 'invoker_invoke']
+  .reduce((o, name, i) => ({ ...o, ['ability' + i]: { name } }), {});
+assert.deepEqual(buttonSlots(inv, new Set(['invoker_invoke'])), ['invoker_quas', 'invoker_wex', 'invoker_exort', 'invoker_empty1', 'invoker_empty2', 'invoker_invoke']);
+const invNames = new Map([[1, 'invoker_quas'], [2, 'invoker_wex'], [3, 'invoker_exort']]);
+// a mid Invoker game: Exort first, 8 Exort points by level 15; it must not be dropped as broken
+const exortGame = [3, 1, 3, 2, 3, 2, 3, 1, 3, 2, 3, 1, 3, 2, 3, 1];
+const invOrders = guideOrders([exortGame, exortGame, [1, 2, 1, 3, 1, 2, 1]], invNames, null);
+assert.equal(invOrders.length, 3);
+const orbs = new Set(['invoker_quas', 'invoker_wex', 'invoker_exort']);
+assert.deepEqual(nextSkill({ level: 2, best: new Map(), learnable: orbs, ult: null, orders: invOrders }), { name: 'invoker_exort', votes: 2, of: 3 });
+// level 2 with Exort 1: Exort 2 needs level 3, so the next pick is the game's next orb
+assert.equal(nextSkill({ level: 2, best: new Map([['invoker_exort', 1]]), learnable: orbs, ult: null, orders: invOrders.slice(0, 2) }).name, 'invoker_quas');
+// Exort 7 at level 13 is allowed, 8 waits for 15
+assert.equal(nextSkill({ level: 14, best: new Map([['invoker_exort', 7], ['invoker_quas', 4], ['invoker_wex', 3]]), learnable: orbs, ult: null, orders: [['invoker_exort']] }), null);
+assert.equal(freePoints({ level: 2 }, new Map(), orbs).skill, 2);
+// your game, 2026-10-26: level 6 with 7 orb points spent is fully spent, level 8 with 9 too
+assert.equal(freePoints({ level: 6 }, new Map([['invoker_quas', 1], ['invoker_wex', 3], ['invoker_exort', 3]]), orbs).skill, 0);
+assert.equal(freePoints({ level: 8 }, new Map([['invoker_quas', 1], ['invoker_wex', 4], ['invoker_exort', 4]]), orbs).skill, 0);
+assert.equal(freePoints({ level: 12 }, new Map([['invoker_quas', 1], ['invoker_wex', 4], ['invoker_exort', 4]]), orbs).skill, 5);
+assert.equal(freePoints({ level: 9, aghanims_scepter: true }, new Map([['invoker_quas', 4], ['invoker_wex', 2], ['invoker_exort', 4]]), orbs).skill, 3);
 console.log('skill bar ok');
