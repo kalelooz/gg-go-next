@@ -70,6 +70,8 @@ body{font-family:Bahnschrift,'Segoe UI',sans-serif;font-stretch:semi-condensed;c
 #items .wr{font-variant-numeric:tabular-nums;font-weight:600}
 /* matchup hints: a sentence each, so they wrap inside the panel */
 #items .ih.vs{margin-top:.35em}
+/* the neutral section is its own thing, not another buy: a gap and a line above it */
+#items .ih.nt{margin-top:.9em;padding-top:.55em;border-top:1px solid rgb(255 255 255 / .18)}
 #items .hint{height:auto;align-items:flex-start;padding:.15em 0}
 #items .hint .nm{white-space:normal;font-weight:400;line-height:1.25;color:rgb(255 255 255 / .9)}
 #items .hint.skip img{filter:grayscale(1) brightness(.7)}
@@ -485,7 +487,7 @@ function renderItems(t) {
 function neutralHtml(n) {
   const row = (id, pct) => `<div class="it"><img src="icons/items/${id}.png" alt="" onerror="this.style.visibility='hidden'">
       <span class="nm">${neutralName(id)}</span><span class="wr">${pct}%</span></div>`;
-  return `<div class="ih vs"><span>Neutral item</span>${n.picks.length ? '<span>pros</span>' : ''}</div><div class="it hint tip"><span class="nm">${n.text}</span></div>`
+  return `<div class="ih vs nt"><span>Neutral item</span>${n.picks.length ? '<span>pros</span>' : ''}</div><div class="it hint tip"><span class="nm">${n.text}</span></div>`
     + n.picks.map(([id, pct]) => row(id, pct)).join('') + (n.enc ? row(n.enc[0], n.enc[1]) : '');
 }
 // The skill bar window (skillbar.html) marks the "+" to click on Dota's own ability bar
