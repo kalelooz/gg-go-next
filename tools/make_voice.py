@@ -48,6 +48,9 @@ def lines():
     out['farm-ready'] = 'You can farm ancients now.'
     out['farm-up'] = 'Ancients are up near you.'
     out['farm-stack'] = 'Stack the ancients. Hit them at fifty-one.'
+    # neutral items (app/src/neutral.js)
+    out['neutral-craft'] = 'Your neutral slot is empty. Craft one.'
+    out['neutral-behind'] = 'A new neutral tier is open. Clear camps and craft.'
     return out
 
 

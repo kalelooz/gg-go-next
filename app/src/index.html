@@ -114,6 +114,7 @@ import { matchupHints } from './matchups.js';
 import { deathTip, buybackTip, bkbTiming, bkbTip } from './advice.js';
 import { newReminders, mayRemind } from './reminders.js';
 import { ourCamps, campsUp, coreItem, readyForAncients, farmTip } from './farm.js';
+import { neutralTip, neutralName } from './neutral.js';
 import { freePoints, guideOrders, nextSkill, talentTip, talentPick, buttonSlots } from './skills.js';
 import { HEROES } from './heroes.js';
 
@@ -460,9 +461,12 @@ function renderItems(t) {
   const tips = me?.hero?.name && shows('tips') ? myTips(t, ownedNames) : [], lvl = shows('levelup') ? skillTips() : [];
   const farm = me?.hero?.name && shows('farm') ? farmLine(t, ownedNames) : null;
   if (farm) remind(farm.clip, farm.text, 'farm', farm.clip, t);
+  const neutral = me?.hero?.id > 0 && shows('neutral') ? neutralTip({ minute: Math.floor(t / 60), pos: rolePos, heroId: me.hero.id,
+    heroKey: me.hero.name.replace(/^npc_dota_hero_/, ''), art: me.items?.neutral0, enc: me.items?.neutral1 }) : null;
+  if (neutral?.clip) say('neutral-' + neutral.key, neutral.text, 'neutral', neutral.clip);
   speakPanel(hints, lvl, tips, t);
   sendSkillBar(lvl);
-  el.hidden = !top.length && !hints.length && !tips.length && !lvl.length && !farm;
+  el.hidden = !top.length && !hints.length && !tips.length && !lvl.length && !farm && !neutral;
   // win rate: green at 55%+, red at 45% or less
   el.innerHTML = (lvl.length ? '<div class="ih"><span>Level up</span></div>' + lvl.map(s => `<div class="it hint tip"><span class="nm">${s.text}</span></div>`).join('') + (top.length ? '<div class="ih vs"></div>' : '') : '')
     + (top.length ? '<div class="ih"><span>Items now</span><span>win</span></div>' : '') + top.map(i => {
@@ -473,7 +477,15 @@ function renderItems(t) {
     `<div class="it hint ${h.action}"><img src="icons/items/${h.item.replace(/^item_/, '')}.png" alt="" onerror="this.style.visibility='hidden'">
       <span class="nm">${hintText(h)}</span></div>`).join('')
     + (tips.length ? '<div class="ih vs"><span>Tips</span></div>' : '') + tips.map(s => `<div class="it hint tip"><span class="nm">${s.text}</span></div>`).join('')
-    + (farm ? `<div class="ih vs"><span>Farming</span></div><div class="it hint tip"><span class="nm">${farm.text}</span></div>` : '');
+    + (farm ? `<div class="ih vs"><span>Farming</span></div><div class="it hint tip"><span class="nm">${farm.text}</span></div>` : '')
+    + (neutral ? neutralHtml(neutral) : '');
+}
+// neutral.js: the next tier to craft, what pros take for this hero and role (% of their crafts), and the enchantment
+function neutralHtml(n) {
+  const row = (id, pct) => `<div class="it"><img src="icons/items/${id}.png" alt="" onerror="this.style.visibility='hidden'">
+      <span class="nm">${neutralName(id)}</span><span class="wr">${pct}%</span></div>`;
+  return `<div class="ih vs"><span>Neutral item</span>${n.picks.length ? '<span>pros</span>' : ''}</div><div class="it hint tip"><span class="nm">${n.text}</span></div>`
+    + n.picks.map(([id, pct]) => row(id, pct)).join('') + (n.enc ? row(n.enc[0], n.enc[1]) : '');
 }
 // The skill bar window (skillbar.html) marks the "+" to click on Dota's own ability bar
 let lastBar = '';
