@@ -57,8 +57,8 @@ const spectre = ['spectre_spectral_dagger', 'spectre_shadow_step', 'spectre_disp
 assert.equal(buttonSlots(spectre, new Set(['spectre_desolate'])).length, 5);
 assert.deepEqual(talentPick({ hero: { level: 10 }, free: 1, rows, slots }), { tier: 10, top: 5917, pct: 55, better: null });
 // Invoker: orbs take 8 points (one every 2 levels, to 15), Invoke is innate and on the bar, so 6 buttons
-const inv = ['invoker_quas', 'invoker_wex', 'invoker_exort', 'invoker_empty1', 'invoker_empty2', 'invoker_invoke']
-  .reduce((o, name, i) => ({ ...o, ['ability' + i]: { name } }), {});
+const bar = names => names.reduce((o, name, i) => ({ ...o, ['ability' + i]: { name, passive: false } }), {});
+const inv = bar(['invoker_quas', 'invoker_wex', 'invoker_exort', 'invoker_empty1', 'invoker_empty2', 'invoker_invoke']);
 assert.deepEqual(buttonSlots(inv, new Set(['invoker_invoke'])), ['invoker_quas', 'invoker_wex', 'invoker_exort', 'invoker_empty1', 'invoker_empty2', 'invoker_invoke']);
 const invNames = new Map([[1, 'invoker_quas'], [2, 'invoker_wex'], [3, 'invoker_exort']]);
 // a mid Invoker game: Exort first, 8 Exort points by level 15; it must not be dropped as broken
@@ -77,4 +77,11 @@ assert.equal(freePoints({ level: 6 }, new Map([['invoker_quas', 1], ['invoker_we
 assert.equal(freePoints({ level: 8 }, new Map([['invoker_quas', 1], ['invoker_wex', 4], ['invoker_exort', 4]]), orbs).skill, 0);
 assert.equal(freePoints({ level: 12 }, new Map([['invoker_quas', 1], ['invoker_wex', 4], ['invoker_exort', 4]]), orbs).skill, 5);
 assert.equal(freePoints({ level: 9, aghanims_scepter: true }, new Map([['invoker_quas', 4], ['invoker_wex', 2], ['invoker_exort', 4]]), orbs).skill, 3);
+// Earth Spirit: Stone Remnant is an innate you press, so it's a button; Scepter adds Petrify (Valve hero data)
+const es = ['earth_spirit_boulder_smash', 'earth_spirit_rolling_boulder', 'earth_spirit_geomagnetic_grip', 'earth_spirit_stone_caller'];
+assert.equal(buttonSlots(bar([...es, 'earth_spirit_magnetize']), new Set(['earth_spirit_stone_caller'])).length, 5);
+assert.equal(buttonSlots(bar([...es, 'earth_spirit_petrify', 'earth_spirit_magnetize']), new Set(['earth_spirit_stone_caller'])).indexOf('earth_spirit_magnetize'), 5);
+// Techies: Mutually Assured Destruction is a passive innate, off the bar
+const tech = { ...bar(['techies_sticky_bomb', 'techies_reactive_tazer', 'techies_suicide']), ability3: { name: 'techies_mutually_assured_destruction', passive: true }, ability4: { name: 'techies_land_mines', passive: false } };
+assert.equal(buttonSlots(tech, new Set(['techies_mutually_assured_destruction'])).length, 4);
 console.log('skill bar ok');

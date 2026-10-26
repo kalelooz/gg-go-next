@@ -104,8 +104,10 @@ export function talentTip(o) {
   return say;
 }
 
-// Dota's ability buttons, left to right: the feed's abilities in order, minus cosmetics, innates and hidden slots
+// Dota's ability buttons, left to right: the feed's abilities in order, minus cosmetics and hidden slots.
+// Passive innates (Keen Scope) sit in the circle left of the bar; ones you press (Invoke, Stone Remnant) are on it.
+// Scepter and Shard abilities join the feed, and the bar, once you have them.
 export function buttonSlots(abilities, innate) {
-  return Object.values(abilities || {}).map(a => a?.name)
-    .filter(n => n && !/^(plus_|seasonal_)/.test(n) && !n.includes('hidden') && (!innate.has(n) || n === 'invoker_invoke'));
+  return Object.values(abilities || {}).filter(a => a?.name && !/^(plus_|seasonal_)/.test(a.name)
+    && !a.name.includes('hidden') && (!innate.has(a.name) || a.passive === false)).map(a => a.name);
 }
