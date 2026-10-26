@@ -112,6 +112,7 @@ import { itemsNow } from './items.js';
 import { ROLE_NAMES, partOn, laneAt, guessRole } from './roles.js';
 import { matchupHints } from './matchups.js';
 import { deathTip, buybackTip, bkbTiming, bkbTip } from './advice.js';
+import { ourCamps, campsUp, coreItem, readyForAncients, farmTip } from './farm.js';
 import { freePoints, guideOrders, nextSkill, talentTip, talentPick, buttonSlots } from './skills.js';
 import { HEROES } from './heroes.js';
 
@@ -313,7 +314,9 @@ function renderStatus(t) {
 
 // Item timing: fetched once per hero from STRATZ, then filtered to the next few minutes as the game goes
 const { invoke } = TAURI.core;
-let itemNames = null, itemRows = null, itemsFor = null, bkbMinute = null;
+let itemNames = null, itemRows = null, itemsFor = null, bkbMinute = null, coreId = null;
+// farming: the last minimap, visible enemy heroes, and when we first became ready for ancients this game
+let lastMinimap = null, enemySpots = [], readySince = null;
 let skillData = null, skillsFor = null, bestSkill = new Map();
 async function stratz(query) {
   const token = await invoke('load_token');
@@ -322,10 +325,10 @@ async function stratz(query) {
 }
 async function loadItems(heroId) {
   const key = heroId + ':' + rolePos;
-  itemsFor = key; itemRows = null; bkbMinute = null;
+  itemsFor = key; itemRows = null; bkbMinute = null; coreId = null;
   try {
     if (!itemNames) {
-      const d = await stratz('{ constants { items(language: ENGLISH) { id shortName displayName } } }');
+      const d = await stratz('{ constants { items(language: ENGLISH) { id shortName displayName stat { cost } } } }');
       if (!d) return;
       itemNames = new Map(d.constants.items.map(i => [i.id, i]));
     }
@@ -337,6 +340,7 @@ async function loadItems(heroId) {
       itemRows = d?.heroStats?.itemFullPurchase || null;
       const bkb = [...itemNames.values()].find(i => i.shortName === 'black_king_bar')?.id;
       bkbMinute = itemRows && bkb ? bkbTiming(itemRows, bkb) : null;
+      coreId = itemRows ? coreItem(itemRows, id => itemNames.get(id)?.stat?.cost) : null;
     }
   } catch {}
 }
@@ -445,9 +449,11 @@ function renderItems(t) {
     top = itemsNow(itemRows, Math.max(0, Math.floor(t / 60)), skip);
   }
   const tips = me?.hero?.name && shows('tips') ? myTips(t, ownedNames) : [], lvl = shows('levelup') ? skillTips() : [];
+  const farm = me?.hero?.name && shows('farm') ? farmLine(t, ownedNames) : null;
+  if (farm) say('farm-' + farm.key, farm.text, 'farm', farm.clip);
   speakPanel(hints, lvl, tips);
   sendSkillBar(lvl);
-  el.hidden = !top.length && !hints.length && !tips.length && !lvl.length;
+  el.hidden = !top.length && !hints.length && !tips.length && !lvl.length && !farm;
   // win rate: green at 55%+, red at 45% or less
   el.innerHTML = (lvl.length ? '<div class="ih"><span>Level up</span></div>' + lvl.map(s => `<div class="it hint tip"><span class="nm">${s.text}</span></div>`).join('') + (top.length ? '<div class="ih vs"></div>' : '') : '')
     + (top.length ? '<div class="ih"><span>Items now</span><span>win</span></div>' : '') + top.map(i => {
@@ -457,7 +463,8 @@ function renderItems(t) {
   }).join('') + (hints.length ? '<div class="ih vs"><span>Against their heroes</span></div>' : '') + hints.map(h =>
     `<div class="it hint ${h.action}"><img src="icons/items/${h.item.replace(/^item_/, '')}.png" alt="" onerror="this.style.visibility='hidden'">
       <span class="nm">${hintText(h)}</span></div>`).join('')
-    + (tips.length ? '<div class="ih vs"><span>Tips</span></div>' : '') + tips.map(s => `<div class="it hint tip"><span class="nm">${s.text}</span></div>`).join('');
+    + (tips.length ? '<div class="ih vs"><span>Tips</span></div>' : '') + tips.map(s => `<div class="it hint tip"><span class="nm">${s.text}</span></div>`).join('')
+    + (farm ? `<div class="ih vs"><span>Farming</span></div><div class="it hint tip"><span class="nm">${farm.text}</span></div>` : '');
 }
 // The skill bar window (skillbar.html) marks the "+" to click on Dota's own ability bar
 let lastBar = '';
@@ -482,6 +489,18 @@ function speakPanel(hints, lvl, tips) {
     if (now - freeSince.get(k) >= 10000) say(k, l.text, 'levelup', l.clip);
   }
   for (const x of tips) say(x.clip + x.key, x.text, 'tips', x.clip);
+}
+// farm.js: carry ancients, from our hero's spot, the minimap and the hero's first core item on STRATZ
+function farmLine(t, ownedNames) {
+  if (!myTeam || me.hero.xpos == null) return null;
+  const minute = Math.floor(t / 60), second = Math.floor(t) % 60;
+  const ownedIds = new Set([...(itemNames?.values() || [])].filter(i => ownedNames.has('item_' + i.shortName)).map(i => i.id));
+  const ready = readyForAncients({ minute, level: me.hero.level || 0, ownedIds, core: coreId });
+  if (ready && readySince == null) readySince = Date.now();
+  const camps = ourCamps(myTeam);
+  return farmTip({ pos: rolePos, minute, second, ready, readySince: readySince ?? Date.now(), now: Date.now(),
+    me: { x: me.hero.xpos, y: me.hero.ypos }, camps, up: campsUp(lastMinimap, camps), enemies: enemySpots,
+    coreName: coreId != null ? itemNames.get(coreId)?.displayName : null });
 }
 // advice.js rules about our own game: dying a lot, buyback gold, a late BKB (text only, no voice clips yet)
 function myTips(t, owned) {
@@ -534,7 +553,7 @@ listen('gsi', e => {
     if (!d.map) return;
     if (d.map.matchid !== matchId) {
       matchId = d.map.matchid; roshanAt = aegisAt = null; glyphs = newGlyphs(); wards = newWards(); seenEvents.clear(); spoken.clear();
-      lanes = []; lastStack = -Infinity; seenEnemies = new Set(); bestSkill = new Map();
+      lanes = []; lastStack = -Infinity; seenEnemies = new Set(); bestSkill = new Map(); readySince = null;
     }
     if (d.player?.team_name && d.player.team_name !== myTeam) { myTeam = d.player.team_name; glyphIcons(); }
     if (d.hero) me = { hero: d.hero, items: d.items, gold: d.player?.gold, deaths: d.player?.deaths, abilities: d.abilities };
@@ -560,8 +579,13 @@ listen('gsi', e => {
     }
     map = d.map; gotAt = Date.now();
     if (myTeam) trackWards(wards, d.minimap, myTeam, d.map.clock_time);
+    lastMinimap = d.minimap || null; enemySpots = [];
     for (const u of Object.values(d.minimap || {})) {
-      if (u?.image === 'minimap_enemyicon' && u.unitname?.startsWith('npc_dota_hero_')) seenEnemies.add(u.unitname);
+      if (u?.image === 'minimap_enemyicon' && u.unitname?.startsWith('npc_dota_hero_')) {
+        seenEnemies.add(u.unitname);
+        // a dead hero stays frozen on the minimap with vision 0, so only live ones count as a threat
+        if (u.visionrange) enemySpots.push({ x: u.xpos, y: u.ypos });
+      }
     }
     onEvents(d);
   } catch {}

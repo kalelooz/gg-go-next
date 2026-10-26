@@ -44,6 +44,10 @@ def lines():
     out['tip-bkb'] = 'Your B K B is late.'
     out['hint-invis'] = 'They have an invisible hero. Carry dust or a sentry.'
     out['hint-vessel'] = 'They heal a lot. Get a Spirit Vessel.'
+    # carry farming (app/src/farm.js)
+    out['farm-ready'] = 'You can farm ancients now.'
+    out['farm-up'] = 'Ancients are up near you.'
+    out['farm-stack'] = 'Stack the ancients. Hit them at fifty-one.'
     return out
 
 

@@ -10,11 +10,11 @@ export const ROLE_PARTS = [
   ['wisdom', 'Wisdom shrines', true], ['lotus', 'Lotus pools', true], ['stack', 'Stack camps', true],
   ['roshan', 'Roshan and Aegis', true], ['tormentor', 'Tormentor', false], ['glyphs', 'Glyphs', false],
   ['wards', 'Wards', false], ['items', 'Items now', false], ['hints', 'Against their heroes', true],
-  ['levelup', 'Level up', true], ['tips', 'Tips', true],
+  ['levelup', 'Level up', true], ['tips', 'Tips', true], ['farm', 'Farming', true],
 ];
 const DEFAULTS = {
-  show: { water: '01010', power: '01011', wisdom: '01111', lotus: '01111', stack: '00011', wards: '01011' },
-  voice: { water: '01010', power: '01010', bounty: '00011', wisdom: '00111', lotus: '00110', stack: '00011', roshan: '11111' },
+  show: { farm: '10000', water: '01010', power: '01011', wisdom: '01111', lotus: '01111', stack: '00011', wards: '01011' },
+  voice: { farm: '10000', water: '01010', power: '01010', bounty: '00011', wisdom: '00111', lotus: '00110', stack: '00011', roshan: '11111' },
 };
 const talks = part => ROLE_PARTS.some(([id, , v]) => id === part && v);
 export const roleKey = (pos, part, kind) => `role${pos}_${part}_${kind}`;
