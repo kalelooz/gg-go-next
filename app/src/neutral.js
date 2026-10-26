@@ -26,14 +26,14 @@ export const picksFor = (heroId, pos, tier) => PICKS[`${heroId}:${group(pos)}:${
 export const encFor = (heroId, pos, tier) => ENC[`${ATTR[heroId]}:${group(pos)}:${tier}`]?.[0] || null;
 export const neutralName = id => NAMES[id] || id.replace(/_/g, ' ');
 
-// The next tier to craft once it's open, or null. art/enc: GSI items.neutral0 and neutral1.
+// The next tier to craft once it's open, or null. Text is two short lines so it never widens the panel. art/enc: GSI items.neutral0 and neutral1.
 // Voice (clip) only when it's overdue: Tier 1 still empty at 12:00 and 20:00, a later tier 6 minutes after it opens.
 // The feed has no Madstone count, so nothing here says you can afford it.
 export function neutralTip({ minute, pos, heroId, heroKey, art, enc }) {
   if (!pos || minute == null) return null;
   if (art?.name === 'item_divine_regalia_broken')
     return { tier: null, picks: [], enc: null, clip: null, key: 'regalia',
-      text: 'Your Regalia broke when you died and does nothing now. Recrafting costs 20 Madstone, then 30.' };
+      text: 'Regalia broke when you died.\nRecraft: 20 Madstone, then 30.' };
   const have = !art?.name || art.name === 'empty' ? 0 : craftedTier(enc);
   if (have == null || (have > 0 && SKIP.has(heroKey))) return null;
   const tier = have + 1, open = OPENS.filter(m => minute >= m).length;
@@ -43,10 +43,10 @@ export function neutralTip({ minute, pos, heroId, heroKey, art, enc }) {
   let clip = null, key = null, text = `Tier ${tier} neutral, ${COST[tier - 1]} Madstone.`;
   if (tier === 1 && minute >= 12) {
     clip = 'neutral-craft'; key = 'empty' + (minute >= 20 ? 20 : 12);
-    text = `Your neutral slot is empty. Craft Tier 1 when you have 6 Madstone.`;
+    text = 'Neutral slot empty.\nCraft Tier 1 at 6 Madstone.';
   } else if (tier > 1 && minute >= OPENS[tier - 1] + 6) {
     clip = 'neutral-behind'; key = 'behind' + tier;
-    text = `Tier ${tier} neutral is open: clear camps for 10 Madstone, then craft.`;
+    text = `Tier ${tier} neutral is open.\nClear camps for 10 Madstone.`;
   }
   return { tier, picks, enc: e, clip, key, text };
 }
