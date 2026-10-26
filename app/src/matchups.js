@@ -12,8 +12,9 @@ export function matchupHints({ hero, pos, minute, enemies, owned, buys }, rules 
     if (r.hero !== '*' && r.hero !== hero) continue;
     if (pos && !r.roles.includes('pos' + pos)) continue;
     if (minute < r.from || !r.say) continue;
-    const enemy = r.enemy.find(e => enemies.has(e));
-    if (!enemy || owned.has(r.item) || (r.also || []).some(i => owned.has(i))) continue;
+    // min: how many of the listed heroes they need (2 healers, not just one)
+    const hits = r.enemy.filter(e => enemies.has(e)), enemy = hits[0];
+    if (hits.length < (r.min || 1) || owned.has(r.item) || (r.also || []).some(i => owned.has(i))) continue;
     // "skip" only matters if you'd normally buy it; "buy" and "prefer" only for heroes that build it
     const fits = r.action === 'skip' ? buys(r.item)
       : !r.heroMustBuy || buys(r.item) || (r.instead && buys(r.instead));

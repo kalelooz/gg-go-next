@@ -73,6 +73,7 @@ body{font-family:Bahnschrift,'Segoe UI',sans-serif;font-stretch:semi-condensed;c
 #items .hint{height:auto;align-items:flex-start;padding:.15em 0}
 #items .hint .nm{white-space:normal;font-weight:400;line-height:1.25;color:rgb(255 255 255 / .9)}
 #items .hint.skip img{filter:grayscale(1) brightness(.7)}
+#items .tip .nm{color:#FFD24A}
 [hidden]{display:none!important}
 /* parts switched off in the Customize window; they slide out, and back in when switched on.
    Not called .off: that's the grey cooldown chip, and sharing the name hid the TP and buyback chips on cooldown */
@@ -110,6 +111,7 @@ import { SCHEDULES, untilNext, untilStack, fmt, roshan, pits, AEGIS, TORMENTOR_A
 import { itemsNow } from './items.js';
 import { ROLE_NAMES, partOn, laneAt, guessRole } from './roles.js';
 import { matchupHints } from './matchups.js';
+import { deathTip, buybackTip, bkbTiming, bkbTip } from './advice.js';
 import { HEROES } from './heroes.js';
 
 // ?demo runs on a made-up game for the Customize window's preview, with no Tauri behind it
@@ -309,7 +311,7 @@ function renderStatus(t) {
 
 // Item timing: fetched once per hero from STRATZ, then filtered to the next few minutes as the game goes
 const { invoke } = TAURI.core;
-let itemNames = null, itemRows = null, itemsFor = null;
+let itemNames = null, itemRows = null, itemsFor = null, bkbMinute = null;
 async function stratz(query) {
   const token = await invoke('load_token');
   if (!token) return null;
@@ -317,7 +319,7 @@ async function stratz(query) {
 }
 async function loadItems(heroId) {
   const key = heroId + ':' + rolePos;
-  itemsFor = key; itemRows = null;
+  itemsFor = key; itemRows = null; bkbMinute = null;
   try {
     if (!itemNames) {
       const d = await stratz('{ constants { items(language: ENGLISH) { id shortName displayName } } }');
@@ -328,7 +330,11 @@ async function loadItems(heroId) {
     // only games where the hero played our role, so a support Pudge doesn't see mid Pudge items
     const role = rolePos ? `, positionIds: [POSITION_${rolePos}]` : '';
     const d = await stratz(`{ heroStats { itemFullPurchase(heroId: ${heroId}, minTime: 0, maxTime: 90, matchLimit: 50${role}) { itemId time matchCount winCount } } }`);
-    if (itemsFor === key) itemRows = d?.heroStats?.itemFullPurchase || null;
+    if (itemsFor === key) {
+      itemRows = d?.heroStats?.itemFullPurchase || null;
+      const bkb = [...itemNames.values()].find(i => i.shortName === 'black_king_bar')?.id;
+      bkbMinute = itemRows && bkb ? bkbTiming(itemRows, bkb) : null;
+    }
   } catch {}
 }
 // how often STRATZ sees this hero in each position, for the Auto role guess
@@ -381,7 +387,8 @@ function renderItems(t) {
     const skip = new Set([...itemNames.values()].filter(i => owned.has(i.shortName) || /lotus/.test(i.shortName)).map(i => i.id));
     top = itemsNow(itemRows, Math.max(0, Math.floor(t / 60)), skip);
   }
-  el.hidden = !top.length && !hints.length;
+  const tips = me?.hero?.name ? myTips(t, ownedNames) : [];
+  el.hidden = !top.length && !hints.length && !tips.length;
   // win rate: green at 55%+, red at 45% or less
   el.innerHTML = (top.length ? '<div class="ih"><span>Items now</span><span>win</span></div>' : '') + top.map(i => {
     const it = itemNames.get(i.id), w = Math.round(i.win * 100);
@@ -389,7 +396,18 @@ function renderItems(t) {
       <span class="nm">${it?.displayName || i.id}</span><span class="wr ${w >= 55 ? 'ok' : w <= 45 ? 'bad' : ''}">${w}%</span></div>`;
   }).join('') + (hints.length ? '<div class="ih vs"><span>Against their heroes</span></div>' : '') + hints.map(h =>
     `<div class="it hint ${h.action}"><img src="icons/items/${h.item.replace(/^item_/, '')}.png" alt="" onerror="this.style.visibility='hidden'">
-      <span class="nm">${hintText(h)}</span></div>`).join('');
+      <span class="nm">${hintText(h)}</span></div>`).join('')
+    + (tips.length ? '<div class="ih vs"><span>Tips</span></div>' : '') + tips.map(s => `<div class="it hint tip"><span class="nm">${s}</span></div>`).join('');
+}
+// advice.js rules about our own game: dying a lot, buyback gold, a late BKB (text only, no voice clips yet)
+function myTips(t, owned) {
+  const minute = Math.floor(t / 60), key = me.hero.name.replace(/^npc_dota_hero_/, '');
+  const bb = buybackStatus(me.hero, me.gold, t + map.game_time - map.clock_time);
+  return [
+    deathTip({ deaths: me.deaths, minute, pos: rolePos, owned, buys: buysItem }),
+    buybackTip({ pos: rolePos, minute, bb }),
+    bkbTip({ pos: rolePos, minute, heroKey: key, heroName: HERO_NAME[me.hero.name] || key, median: bkbMinute, owned }),
+  ].filter(Boolean).slice(0, 2);
 }
 
 function renderWards(t) {
@@ -434,7 +452,7 @@ listen('gsi', e => {
       lanes = []; lastStack = -Infinity; seenEnemies = new Set();
     }
     if (d.player?.team_name && d.player.team_name !== myTeam) { myTeam = d.player.team_name; glyphIcons(); }
-    if (d.hero) me = { hero: d.hero, items: d.items, gold: d.player?.gold };
+    if (d.hero) me = { hero: d.hero, items: d.items, gold: d.player?.gold, deaths: d.player?.deaths };
     if (d.hero?.id > 0 && d.hero.id !== splitFor) loadSplit(d.hero.id);
     if (d.hero?.id > 0 && d.hero.id + ':' + rolePos !== itemsFor) loadItems(d.hero.id);
     // the lane we stand in between 1:30 and 3:30, once per game second

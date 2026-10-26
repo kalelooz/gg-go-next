@@ -13,6 +13,13 @@ assert.ok(!ids({ enemies: new Set(['npc_dota_hero_bristleback']), buys: () => fa
 assert.ok(!ids({ enemies: new Set(['npc_dota_hero_bristleback']), pos: 5 }).includes('bb-silver'));    // cores only
 // supports: dust against Riki from 6:00, even without STRATZ data
 assert.ok(ids({ pos: 5, minute: 7, enemies: new Set(['npc_dota_hero_riki']), buys: () => false }).includes('invis-dust'));
+// a sentry counts as being ready for invisible heroes
+assert.ok(!ids({ pos: 5, minute: 7, enemies: new Set(['npc_dota_hero_riki']), owned: new Set(['item_ward_sentry']) }).includes('invis-dust'));
+// Vessel: one big healer is enough, smaller healers need two
+const vessel = { hero: 'npc_dota_hero_viper', pos: 2, minute: 15 };
+assert.ok(ids({ ...vessel, enemies: new Set(['npc_dota_hero_alchemist']) }).includes('heal-vessel'));
+assert.ok(!ids({ ...vessel, enemies: new Set(['npc_dota_hero_dazzle']) }).includes('heal-vessel-2'));
+assert.ok(ids({ ...vessel, enemies: new Set(['npc_dota_hero_dazzle', 'npc_dota_hero_oracle']) }).includes('heal-vessel-2'));
 // Medusa's BKB only against Anti-Mage, only for Medusa
 assert.ok(ids({ hero: 'npc_dota_hero_medusa', enemies: new Set(['npc_dota_hero_antimage']) }).includes('medusa-am-bkb'));
 assert.ok(!ids({ enemies: new Set(['npc_dota_hero_antimage']) }).includes('medusa-am-bkb'));

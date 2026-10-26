@@ -207,8 +207,8 @@ fn main() {
             if let Some(m) = win.current_monitor()? {
                 let (mp, ms) = (m.position(), m.size());
                 let w = (ms.height as f64 * 0.44) as u32;
-                // tall enough for every row plus the wards line and the items panel
-                let h = (ms.height as f64 * 0.52) as u32;
+                // tall enough for every row plus the wards line and the items panel with its tips
+                let h = (ms.height as f64 * 0.6) as u32;
                 win.set_size(tauri::PhysicalSize::new(w, h))?;
                 win.set_position(tauri::PhysicalPosition::new(
                     mp.x + ms.width as i32 - w as i32,

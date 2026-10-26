@@ -12,7 +12,7 @@ function payload() {
   return {
     map: { matchid: 'demo', clock_time: t, game_time: t + 90, daytime: Math.floor(t / 300) % 2 === 0,
       nightstalker_night: false, game_state: 'DOTA_GAMERULES_STATE_GAME_IN_PROGRESS', paused: false },
-    player: { team_name: 'radiant', team_slot: 0, gold: 1450 },
+    player: { team_name: 'radiant', team_slot: 0, gold: 1450, deaths: 4 },
     hero: { id: 32, name: 'npc_dota_hero_riki', alive: true, buyback_cost: 1900, buyback_cooldown: 0 },
     items: { slot0: { name: 'item_power_treads' }, slot1: { name: 'item_aegis' }, teleport0: { name: 'item_tpscroll', cooldown: 0 } },
     minimap: { a: ward('observer', 1), b: ward('observer', 2), c: ward('sentry', 3),
