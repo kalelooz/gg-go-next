@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { freePoints, guideOrders, nextSkill, talentTip } from './skills.js';
+import { freePoints, guideOrders, nextSkill, talentTip, talentPick, buttonSlots } from './skills.js';
 
 // Sniper, level by level from a real game log: keen_scope is innate, cosmetics never count
 const sniper = new Set(['sniper_shrapnel', 'sniper_headshot', 'sniper_take_aim', 'sniper_assassinate']);
@@ -46,3 +46,10 @@ assert.equal(talentTip({ hero: { level: 10 }, free: 0, rows, slots, talentName: 
 assert.match(talentTip({ hero: { level: 15, talent_2: true }, free: 1, rows, slots, talentName: tName }), /\+10 Strength \(60%\)\. \+30% Double Edge Strength Damage wins 7 points more/);
 assert.match(talentTip({ hero: { level: 27, talent_1: true, talent_4: true }, free: 1, rows, slots, talentName: tName }), /other level 10/);
 console.log('skills ok');
+// button order on Dota's bar: Luna from a real game, cosmetics and innates left out
+const luna = { ability0: { name: 'luna_lucent_beam' }, ability1: { name: 'luna_lunar_orbit' }, ability2: { name: 'luna_moon_glaive' },
+  ability3: { name: 'luna_eclipse', ultimate: true }, ability4: { name: 'plus_high_five' }, ability5: { name: 'seasonal_dark_carnival_pie' } };
+assert.deepEqual(buttonSlots(luna, new Set()), ['luna_lucent_beam', 'luna_lunar_orbit', 'luna_moon_glaive', 'luna_eclipse']);
+assert.deepEqual(buttonSlots({ a: { name: 'sniper_shrapnel' }, b: { name: 'sniper_keen_scope' } }, new Set(['sniper_keen_scope'])), ['sniper_shrapnel']);
+assert.deepEqual(talentPick({ hero: { level: 10 }, free: 1, rows, slots }), { tier: 10, top: 5917, pct: 55, better: null });
+console.log('skill bar ok');

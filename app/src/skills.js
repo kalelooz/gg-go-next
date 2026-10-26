@@ -59,27 +59,44 @@ export function nextSkill({ level, attr = 0, best, learnable, ult, orders }) {
 }
 
 // rows: heroStats.talent { abilityId, matchCount, winCount }; slots: constants talents { slot, abilityId },
-// slot 0-1 is level 10, 2-3 level 15 and so on. talentName: abilityId -> text.
-export function talentTip({ hero, free, rows, slots, talentName }) {
+// slot 0-1 is level 10, 2-3 level 15 and so on. Returns the open tier and what most players take there.
+export function talentPick({ hero, free, rows, slots }) {
   if (!free) return null;
   const level = hero.level || 0;
   const taken = i => hero['talent_' + i];
   for (let t = 0; t < TIERS.length; t++) {
     const a = taken(2 * t + 1), b = taken(2 * t + 2);
     // levels 27-30 unlock the other side of a tier you already picked
-    if (level >= 27 && a !== b) return `Spare talent: you can take the other level ${TIERS[t]} talent.`;
+    if (level >= 27 && a !== b) return { tier: TIERS[t], spare: true };
     if (level < TIERS[t] || a || b) continue;
     const pair = [2 * t, 2 * t + 1].map(s => {
       const id = slots.find(x => x.slot === s)?.abilityId, r = rows.find(x => x.abilityId === id);
       return { id, games: r?.matchCount || 0, win: r ? r.winCount / r.matchCount : 0 };
     });
     const total = pair[0].games + pair[1].games;
-    if (!total) return `Level ${TIERS[t]} talent is free.`;
+    if (!total) return { tier: TIERS[t] };
     const [top, other] = pair[0].games >= pair[1].games ? pair : [pair[1], pair[0]];
-    let say = `Level ${TIERS[t]} talent: most take ${talentName(top.id)} (${Math.round(100 * top.games / total)}%).`;
     const gap = Math.round(100 * (other.win - top.win));
-    if (gap >= 2 && other.games >= 1000 && top.games >= 1000) say += ` ${talentName(other.id)} wins ${gap} points more.`;
-    return say;
+    return { tier: TIERS[t], top: top.id, pct: Math.round(100 * top.games / total),
+      // only worth saying with enough games on both sides
+      better: gap >= 2 && other.games >= 1000 && top.games >= 1000 ? { id: other.id, gap } : null };
   }
   return null;
+}
+
+// talentName: abilityId -> text
+export function talentTip(o) {
+  const p = talentPick(o);
+  if (!p) return null;
+  if (p.spare) return `Spare talent: you can take the other level ${p.tier} talent.`;
+  if (!p.top) return `Level ${p.tier} talent is free.`;
+  let say = `Level ${p.tier} talent: most take ${o.talentName(p.top)} (${p.pct}%).`;
+  if (p.better) say += ` ${o.talentName(p.better.id)} wins ${p.better.gap} points more.`;
+  return say;
+}
+
+// Dota's ability buttons, left to right: the feed's abilities in order, minus cosmetics, innates and hidden slots
+export function buttonSlots(abilities, innate) {
+  return Object.values(abilities || {}).map(a => a?.name)
+    .filter(n => n && !/^(plus_|seasonal_)/.test(n) && !n.includes('hidden') && !innate.has(n));
 }

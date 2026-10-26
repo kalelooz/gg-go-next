@@ -4,6 +4,7 @@
   "windows": [
     "overlay",
     "topbar",
+    "skillbar",
     "draft",
     "settings"
   ],

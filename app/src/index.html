@@ -112,7 +112,7 @@ import { itemsNow } from './items.js';
 import { ROLE_NAMES, partOn, laneAt, guessRole } from './roles.js';
 import { matchupHints } from './matchups.js';
 import { deathTip, buybackTip, bkbTiming, bkbTip } from './advice.js';
-import { freePoints, guideOrders, nextSkill, talentTip } from './skills.js';
+import { freePoints, guideOrders, nextSkill, talentTip, talentPick, buttonSlots } from './skills.js';
 import { HEROES } from './heroes.js';
 
 // ?demo runs on a made-up game for the Customize window's preview, with no Tauri behind it
@@ -376,6 +376,7 @@ async function loadSkills(heroId) {
       ids, names, shown,
       // STRATZ flags miss some grants (Centaur's Mount), so abilities top players put points in decide
       flagged: new Set(hero.abilities.filter(a => !a.ability.stat?.isInnate && !a.ability.stat?.isGrantedByScepter && !a.ability.stat?.isGrantedByShard).map(a => a.ability.name)),
+      innate: new Set(hero.abilities.filter(a => a.ability.stat?.isInnate).map(a => a.ability.name)),
       talentRows: d.heroStats.talent || [], slots: hero.talents,
       talentName: id => d2?.constants?.['t' + id]?.language?.displayName || 'the usual one',
     };
@@ -393,11 +394,15 @@ function skillTips() {
   // Invoker's orbs go to 7, so the 4-point rules don't fit him
   if (free.skill && !me.hero.name.endsWith('invoker')) {
     const s = nextSkill({ level: me.hero.level, attr: me.hero.attributes_level || 0, best: bestSkill, learnable, ult, orders });
+    const buttons = buttonSlots(me.abilities, skillData.innate), slot = s ? buttons.indexOf(s.name) : -1;
     if (s) out.push({ id: s.name === ult ? 'ult' : 'skill', clip: s.name === ult ? 'levelup-ult' : 'levelup-skill', key: 'lvl' + me.hero.level,
-      text: `Level ${me.hero.level} point: ${skillData.shown.get(s.name) || s.name}` + (s.of ? ` (${s.votes} of ${s.of} top games).` : '.') });
+      text: `Level ${me.hero.level} point: ${skillData.shown.get(s.name) || s.name}` + (s.of ? ` (${s.votes} of ${s.of} top games).` : '.'),
+      bar: slot < 0 ? null : { name: skillData.shown.get(s.name) || s.name, votes: s.votes, of: s.of, slot, n: buttons.length } });
   }
-  const t = talentTip({ hero: me.hero, free: free.talent, rows: skillData.talentRows, slots: skillData.slots, talentName: skillData.talentName });
-  if (t) out.push({ id: 'talent', clip: 'levelup-talent', key: 'talent' + me.hero.level, text: t });
+  const to = { hero: me.hero, free: free.talent, rows: skillData.talentRows, slots: skillData.slots, talentName: skillData.talentName };
+  const t = talentTip(to), tp = talentPick(to);
+  if (t) out.push({ id: 'talent', clip: 'levelup-talent', key: 'talent' + me.hero.level, text: t,
+    bar: { text: tp.spare ? `Spare level ${tp.tier} talent` : tp.top ? `${skillData.talentName(tp.top)} · ${tp.pct}%` : `Level ${tp.tier} talent` } });
   return out;
 }
 // Enemy heroes we know about: the draft popup's enemy row (if typed in the last 2 hours) and every
@@ -441,6 +446,7 @@ function renderItems(t) {
   }
   const tips = me?.hero?.name && shows('tips') ? myTips(t, ownedNames) : [], lvl = shows('levelup') ? skillTips() : [];
   speakPanel(hints, lvl, tips);
+  sendSkillBar(lvl);
   el.hidden = !top.length && !hints.length && !tips.length && !lvl.length;
   // win rate: green at 55%+, red at 45% or less
   el.innerHTML = (lvl.length ? '<div class="ih"><span>Level up</span></div>' + lvl.map(s => `<div class="it hint tip"><span class="nm">${s.text}</span></div>`).join('') + (top.length ? '<div class="ih vs"></div>' : '') : '')
@@ -452,6 +458,15 @@ function renderItems(t) {
     `<div class="it hint ${h.action}"><img src="icons/items/${h.item.replace(/^item_/, '')}.png" alt="" onerror="this.style.visibility='hidden'">
       <span class="nm">${hintText(h)}</span></div>`).join('')
     + (tips.length ? '<div class="ih vs"><span>Tips</span></div>' : '') + tips.map(s => `<div class="it hint tip"><span class="nm">${s.text}</span></div>`).join('');
+}
+// The skill bar window (skillbar.html) marks the "+" to click on Dota's own ability bar
+let lastBar = '';
+function sendSkillBar(lvl) {
+  const p = { skill: lvl.find(l => l.id !== 'talent')?.bar || null, talent: lvl.find(l => l.id === 'talent')?.bar || null };
+  const k = JSON.stringify(p);
+  if (k === lastBar || !TAURI.event.emit) return;
+  lastBar = k;
+  TAURI.event.emit('skillpick', p);
 }
 // Panel lines that talk. Level-up lines wait 10s so they don't nag while you're already clicking;
 // matchup hints with a clip speak once a game, tips each time their key moves on.

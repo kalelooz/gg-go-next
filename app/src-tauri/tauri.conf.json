@@ -39,6 +39,21 @@
         "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --autoplay-policy=no-user-gesture-required"
       },
       {
+        "label": "skillbar",
+        "title": "Dota Helper skill bar",
+        "url": "skillbar.html",
+        "width": 800,
+        "height": 96,
+        "decorations": false,
+        "transparent": true,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
+        "resizable": false,
+        "shadow": false,
+        "focus": false,
+        "additionalBrowserArgs": "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection --autoplay-policy=no-user-gesture-required"
+      },
+      {
         "label": "draft",
         "title": "Draft helper",
         "url": "draft.html",
