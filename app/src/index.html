@@ -112,6 +112,7 @@ import { itemsNow } from './items.js';
 import { ROLE_NAMES, partOn, laneAt, guessRole } from './roles.js';
 import { matchupHints } from './matchups.js';
 import { deathTip, buybackTip, bkbTiming, bkbTip } from './advice.js';
+import { freePoints, guideOrders, nextSkill, talentTip } from './skills.js';
 import { HEROES } from './heroes.js';
 
 // ?demo runs on a made-up game for the Customize window's preview, with no Tauri behind it
@@ -156,7 +157,7 @@ function updateRole() {
   rolePos = pick; roleSince = Date.now();
   // Customize opens on the role you're playing (same origin as that window, so localStorage is shared)
   if (!DEMO) try { localStorage.setItem('rolePos', String(rolePos || '')); } catch {}
-  if (me?.hero?.id > 0) loadItems(me.hero.id);
+  if (me?.hero?.id > 0) { loadItems(me.hero.id); loadSkills(me.hero.id); }
 }
 // Your role's Show and Voice switches, exactly as Customize shows them
 const shows = part => partOn(settings, rolePos, part, 'show');
@@ -312,6 +313,7 @@ function renderStatus(t) {
 // Item timing: fetched once per hero from STRATZ, then filtered to the next few minutes as the game goes
 const { invoke } = TAURI.core;
 let itemNames = null, itemRows = null, itemsFor = null, bkbMinute = null;
+let skillData = null, skillsFor = null, bestSkill = new Map();
 async function stratz(query) {
   const token = await invoke('load_token');
   if (!token) return null;
@@ -347,6 +349,54 @@ async function loadSplit(heroId) {
     roleSplit = Object.fromEntries([1, 2, 3, 4, 5].map(p => [p, d.heroStats['p' + p]?.[0]?.matchCount || 0]));
     updateRole();
   } catch {}
+}
+// Skill orders from STRATZ's 10 recent top games for this hero and role, plus talent pick rates
+// (docs/research/skill-builds.md). Two requests per hero and role, once per game.
+async function loadSkills(heroId) {
+  const key = heroId + ':' + rolePos;
+  skillsFor = key; skillData = null;
+  try {
+    const pos = rolePos ? `, positionIds: [POSITION_${rolePos}]` : '';
+    const d = await stratz(`{ heroStats {
+      talent(heroId: ${heroId}${pos}) { abilityId matchCount winCount }
+      guide(heroId: ${heroId}${rolePos ? `, positionId: POSITION_${rolePos}` : ''}) { guides { matchId } } }
+      constants { hero(id: ${heroId}) { abilities { abilityId ability { name language { displayName }
+        stat { isInnate isGrantedByScepter isGrantedByShard } } } talents { slot abilityId } } } }`);
+    const hero = d?.constants?.hero;
+    if (!hero || skillsFor !== key) return;
+    const games = (d.heroStats.guide || []).flatMap(g => g.guides || []).map(g => g.matchId).slice(0, 10);
+    const d2 = await stratz(`{ ${games.map(m => `m${m}: match(id: ${m}) { players { heroId abilities { abilityId isTalent } } }`).join(' ')}
+      constants { ${hero.talents.map(t => `t${t.abilityId}: ability(id: ${t.abilityId}) { language { displayName } }`).join(' ')} } }`);
+    if (skillsFor !== key) return;
+    const names = new Map(hero.abilities.map(a => [a.abilityId, a.ability.name]));
+    const shown = new Map(hero.abilities.map(a => [a.ability.name, a.ability.language?.displayName || a.ability.name]));
+    const ids = games.map(m => d2?.['m' + m]?.players?.find(p => p.heroId === heroId)?.abilities?.filter(a => !a.isTalent).map(a => a.abilityId)).filter(Boolean);
+    skillData = {
+      ids, names, shown,
+      // STRATZ flags miss some grants (Centaur's Mount), so abilities top players put points in decide
+      flagged: new Set(hero.abilities.filter(a => !a.ability.stat?.isInnate && !a.ability.stat?.isGrantedByScepter && !a.ability.stat?.isGrantedByShard).map(a => a.ability.name)),
+      talentRows: d.heroStats.talent || [], slots: hero.talents,
+      talentName: id => d2?.constants?.['t' + id]?.language?.displayName || 'the usual one',
+    };
+  } catch {}
+}
+// "Level 7 point: Retaliate (9 of 10 top games)" and the talent line, while a point is free
+function skillTips() {
+  if (!skillData || !me?.hero?.level) return [];
+  const ult = Object.values(me.abilities || {}).find(a => a?.ultimate)?.name;
+  const orders = guideOrders(skillData.ids, skillData.names, ult);
+  const inOrders = new Set(orders.flat().filter(n => n !== 'attr'));
+  const learnable = inOrders.size ? new Set([...inOrders, ...(ult ? [ult] : [])]) : skillData.flagged;
+  const free = freePoints(me.hero, bestSkill, learnable);
+  const out = [];
+  // Invoker's orbs go to 7, so the 4-point rules don't fit him
+  if (free.skill && !me.hero.name.endsWith('invoker')) {
+    const s = nextSkill({ level: me.hero.level, attr: me.hero.attributes_level || 0, best: bestSkill, learnable, ult, orders });
+    if (s) out.push(`Level ${me.hero.level} point: ${skillData.shown.get(s.name) || s.name}` + (s.of ? ` (${s.votes} of ${s.of} top games).` : '.'));
+  }
+  const t = talentTip({ hero: me.hero, free: free.talent, rows: skillData.talentRows, slots: skillData.slots, talentName: skillData.talentName });
+  if (t) out.push(t);
+  return out;
 }
 // Enemy heroes we know about: the draft popup's enemy row (if typed in the last 2 hours) and every
 // enemy hero the minimap has shown this game
@@ -387,10 +437,11 @@ function renderItems(t) {
     const skip = new Set([...itemNames.values()].filter(i => owned.has(i.shortName) || /lotus/.test(i.shortName)).map(i => i.id));
     top = itemsNow(itemRows, Math.max(0, Math.floor(t / 60)), skip);
   }
-  const tips = me?.hero?.name ? myTips(t, ownedNames) : [];
-  el.hidden = !top.length && !hints.length && !tips.length;
+  const tips = me?.hero?.name ? myTips(t, ownedNames) : [], lvl = skillTips();
+  el.hidden = !top.length && !hints.length && !tips.length && !lvl.length;
   // win rate: green at 55%+, red at 45% or less
-  el.innerHTML = (top.length ? '<div class="ih"><span>Items now</span><span>win</span></div>' : '') + top.map(i => {
+  el.innerHTML = (lvl.length ? '<div class="ih"><span>Level up</span></div>' + lvl.map(s => `<div class="it hint tip"><span class="nm">${s}</span></div>`).join('') + (top.length ? '<div class="ih vs"></div>' : '') : '')
+    + (top.length ? '<div class="ih"><span>Items now</span><span>win</span></div>' : '') + top.map(i => {
     const it = itemNames.get(i.id), w = Math.round(i.win * 100);
     return `<div class="it"><img src="icons/items/${it?.shortName}.png" alt="" onerror="this.style.visibility='hidden'">
       <span class="nm">${it?.displayName || i.id}</span><span class="wr ${w >= 55 ? 'ok' : w <= 45 ? 'bad' : ''}">${w}%</span></div>`;
@@ -449,12 +500,15 @@ listen('gsi', e => {
     if (!d.map) return;
     if (d.map.matchid !== matchId) {
       matchId = d.map.matchid; roshanAt = aegisAt = null; glyphs = newGlyphs(); wards = newWards(); seenEvents.clear(); spoken.clear();
-      lanes = []; lastStack = -Infinity; seenEnemies = new Set();
+      lanes = []; lastStack = -Infinity; seenEnemies = new Set(); bestSkill = new Map();
     }
     if (d.player?.team_name && d.player.team_name !== myTeam) { myTeam = d.player.team_name; glyphIcons(); }
-    if (d.hero) me = { hero: d.hero, items: d.items, gold: d.player?.gold, deaths: d.player?.deaths };
+    if (d.hero) me = { hero: d.hero, items: d.items, gold: d.player?.gold, deaths: d.player?.deaths, abilities: d.abilities };
+    // highest level seen per ability: Tiny's Tree Grab leaves the feed while he holds a tree
+    for (const a of Object.values(d.abilities || {})) if (a?.name) bestSkill.set(a.name, Math.max(bestSkill.get(a.name) || 0, a.level || 0));
     if (d.hero?.id > 0 && d.hero.id !== splitFor) loadSplit(d.hero.id);
     if (d.hero?.id > 0 && d.hero.id + ':' + rolePos !== itemsFor) loadItems(d.hero.id);
+    if (d.hero?.id > 0 && d.hero.id + ':' + rolePos !== skillsFor) loadSkills(d.hero.id);
     // the lane we stand in between 1:30 and 3:30, once per game second
     const ct = d.map.clock_time;
     if (ct >= 90 && ct <= 210 && d.hero?.xpos != null && ct !== lanes.at(-1)?.t) {
