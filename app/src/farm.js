@@ -54,14 +54,14 @@ export function farmTip({ pos, minute, second, ready, readySince, now, me, camps
     if (!up.has(i) || !safe(c)) continue;
     // ancients stack later than other camps: pull at :51 (docs/research/pulls-stacks.md)
     if (near(me, c, 1500) && second >= 44 && second < 51)
-      return { id: 'stack', clip: 'farm-stack', key: 'stack' + minute, text: `Stack the ${c.name}: hit them at :51 and walk away.` };
+      return { id: 'stack', clip: 'farm-stack', text: `Stack the ${c.name}: hit them at :51 and walk away.` };
   }
   for (const [i, c] of camps.entries()) {
     if (up.has(i) && safe(c) && near(me, c, 3500))
-      return { id: 'up', clip: 'farm-up', key: 'up' + Math.floor(minute / 3), text: `${c.name[0].toUpperCase() + c.name.slice(1)} are up near you. Clear them between waves.` };
+      return { id: 'up', clip: 'farm-up', text: `${c.name[0].toUpperCase() + c.name.slice(1)} are up near you. Clear them between waves.` };
   }
   // the "ready" line stays a minute, then only the camp lines show
   if (now - readySince < 60000)
-    return { id: 'ready', clip: 'farm-ready', key: 'ready', text: `You can farm ancients now${coreName ? ` with your ${coreName}` : ''}. Waves first, then the ancients near that lane.` };
+    return { id: 'ready', clip: 'farm-ready', text: `You can farm ancients now${coreName ? ` with your ${coreName}` : ''}. Waves first, then the ancients near that lane.` };
   return null;
 }

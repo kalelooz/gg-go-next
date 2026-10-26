@@ -112,6 +112,7 @@ import { itemsNow } from './items.js';
 import { ROLE_NAMES, partOn, laneAt, guessRole } from './roles.js';
 import { matchupHints } from './matchups.js';
 import { deathTip, buybackTip, bkbTiming, bkbTip } from './advice.js';
+import { newReminders, mayRemind } from './reminders.js';
 import { ourCamps, campsUp, coreItem, readyForAncients, farmTip } from './farm.js';
 import { freePoints, guideOrders, nextSkill, talentTip, talentPick, buttonSlots } from './skills.js';
 import { HEROES } from './heroes.js';
@@ -197,6 +198,14 @@ function playNext() {
 }
 // urgent lines (the stack pull) cut ahead of anything still queued
 // part: whose Voice switch decides (null when the caller already checked, like the rune list)
+// Advice lines (reminders.js caps how often each one repeats, with a gap between any two). Checks the
+// Voice switch first, so a muted line doesn't use up its turns or the gap.
+let reminders = newReminders();
+function remind(id, text, part, clip, t, value) {
+  if (!settings.voice || !talks(part) || !mayRemind(reminders, id, t, value)) return;
+  queue.push({ clip, text });
+  playNext();
+}
 function say(key, text, part, clip, urgent = false) {
   if (spoken.has(key)) return;
   spoken.add(key);
@@ -450,8 +459,8 @@ function renderItems(t) {
   }
   const tips = me?.hero?.name && shows('tips') ? myTips(t, ownedNames) : [], lvl = shows('levelup') ? skillTips() : [];
   const farm = me?.hero?.name && shows('farm') ? farmLine(t, ownedNames) : null;
-  if (farm) say('farm-' + farm.key, farm.text, 'farm', farm.clip);
-  speakPanel(hints, lvl, tips);
+  if (farm) remind(farm.clip, farm.text, 'farm', farm.clip, t);
+  speakPanel(hints, lvl, tips, t);
   sendSkillBar(lvl);
   el.hidden = !top.length && !hints.length && !tips.length && !lvl.length && !farm;
   // win rate: green at 55%+, red at 45% or less
@@ -479,16 +488,16 @@ function sendSkillBar(lvl) {
 // matchup hints with a clip speak once a game, tips each time their key moves on.
 const HINT_CLIP = { 'invis-dust': 'hint-invis', 'invis-dust-2': 'hint-invis', 'heal-vessel': 'hint-vessel', 'heal-vessel-2': 'hint-vessel' };
 const freeSince = new Map();
-function speakPanel(hints, lvl, tips) {
-  for (const h of hints) if (HINT_CLIP[h.id]) say('hint-' + HINT_CLIP[h.id], h.say, 'hints', HINT_CLIP[h.id]);
+function speakPanel(hints, lvl, tips, t) {
+  for (const h of hints) if (HINT_CLIP[h.id]) remind(HINT_CLIP[h.id], h.say, 'hints', HINT_CLIP[h.id], t);
   const now = Date.now(), live = new Set(lvl.map(l => l.key + l.id));
   for (const k of freeSince.keys()) if (!live.has(k)) freeSince.delete(k);
   for (const l of lvl) {
     const k = l.key + l.id;
     if (!freeSince.has(k)) freeSince.set(k, now);
-    if (now - freeSince.get(k) >= 10000) say(k, l.text, 'levelup', l.clip);
+    if (now - freeSince.get(k) >= 10000) remind(k, l.text, 'levelup', l.clip, t);
   }
-  for (const x of tips) say(x.clip + x.key, x.text, 'tips', x.clip);
+  for (const x of tips) remind(x.clip, x.text, 'tips', x.clip, t, me?.deaths || 0);
 }
 // farm.js: carry ancients, from our hero's spot, the minimap and the hero's first core item on STRATZ
 function farmLine(t, ownedNames) {
@@ -506,11 +515,11 @@ function farmLine(t, ownedNames) {
 function myTips(t, owned) {
   const minute = Math.floor(t / 60), key = me.hero.name.replace(/^npc_dota_hero_/, '');
   const bb = buybackStatus(me.hero, me.gold, t + map.game_time - map.clock_time);
-  // key: when to speak again. Deaths every 2 more, buyback and BKB every 5 minutes while they still apply
+  // how often each one speaks again is set in reminders.js
   return [
-    { clip: 'tip-deaths', key: 'deaths' + Math.floor((me.deaths || 0) / 2), text: deathTip({ deaths: me.deaths, minute, pos: rolePos, owned, buys: buysItem }) },
-    { clip: 'tip-buyback', key: 'bb' + Math.floor(minute / 5), text: buybackTip({ pos: rolePos, minute, bb }) },
-    { clip: 'tip-bkb', key: 'bkb' + Math.floor(minute / 5), text: bkbTip({ pos: rolePos, minute, heroKey: key, heroName: HERO_NAME[me.hero.name] || key, median: bkbMinute, owned }) },
+    { clip: 'tip-deaths', text: deathTip({ deaths: me.deaths, minute, pos: rolePos, owned, buys: buysItem }) },
+    { clip: 'tip-buyback', text: buybackTip({ pos: rolePos, minute, bb }) },
+    { clip: 'tip-bkb', text: bkbTip({ pos: rolePos, minute, heroKey: key, heroName: HERO_NAME[me.hero.name] || key, median: bkbMinute, owned }) },
   ].filter(x => x.text).slice(0, 2);
 }
 
@@ -552,7 +561,7 @@ listen('gsi', e => {
     const d = JSON.parse(e.payload);
     if (!d.map) return;
     if (d.map.matchid !== matchId) {
-      matchId = d.map.matchid; roshanAt = aegisAt = null; glyphs = newGlyphs(); wards = newWards(); seenEvents.clear(); spoken.clear();
+      matchId = d.map.matchid; roshanAt = aegisAt = null; glyphs = newGlyphs(); wards = newWards(); seenEvents.clear(); spoken.clear(); reminders = newReminders();
       lanes = []; lastStack = -Infinity; seenEnemies = new Set(); bestSkill = new Map(); readySince = null;
     }
     if (d.player?.team_name && d.player.team_name !== myTeam) { myTeam = d.player.team_name; glyphIcons(); }
