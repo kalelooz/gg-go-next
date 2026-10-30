@@ -269,6 +269,12 @@ fn installed() -> bool {
     std::env::current_exe().is_ok_and(|p| p.with_file_name("uninstall.exe").is_file())
 }
 
+// "Every version" in the What's new window
+#[tauri::command]
+fn open_releases() {
+    open_releases_page();
+}
+
 #[tauri::command]
 fn is_installed() -> bool {
     installed()
@@ -352,7 +358,7 @@ fn main() {
                 })
                 .build(),
         )
-        .invoke_handler(tauri::generate_handler![stratz, load_token, save_token, get_settings, set_setting, get_update, is_installed, install_update, whats_new, open_feedback, dota_setup])
+        .invoke_handler(tauri::generate_handler![stratz, load_token, save_token, get_settings, set_setting, get_update, open_releases, is_installed, install_update, whats_new, open_feedback, dota_setup])
         .setup(|app| {
             let saved = load_settings(app.handle());
             // another app may already own the combination; the tray item still works then
