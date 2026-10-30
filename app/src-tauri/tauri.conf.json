@@ -98,7 +98,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEYwRTI3MUQ4OUUyOUExMzAKUldRd29TbWUySEhpOEFObTFxaFV3T2FYM25DdTZlSldYOFlrUS9MakUxZXVlTldGam9Kd3FqY24K",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEQyMDNGNEU2OTRGRTI2NEYKUldSUEp2NlU1dlFEMHRRMzduZmFFYXVCWGtleVRLL2NaaHFDNGJCTlkwMGlHWnFHZU5uWTFzOFcK",
       "endpoints": ["https://github.com/kalelooz/gg-go-next/releases/latest/download/latest.json"],
       "windows": {
         "installMode": "passive"
