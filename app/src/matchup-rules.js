@@ -1,4 +1,4 @@
-// Matchup item rules, copied from the JSON block in docs/research/matchup-items.md (patch 7.41f, 2026-10-25).
+// Matchup item rules from STRATZ item data, Divine and Immortal games (patch 7.41f, 2026-10-25).
 // Each one is backed by pro and pub game data; edit the doc and re-copy rather than editing here.
 export const RULES = [
   {"id": "bb-silver", "hero": "*", "enemy": ["npc_dota_hero_bristleback"], "action": "buy", "item": "item_silver_edge", "roles": ["pos1", "pos2", "pos3"], "from": 22, "heroMustBuy": true, "sure": "strong", "say": "Bristleback: Silver Edge turns off his back armor.", "pro": 3.8},

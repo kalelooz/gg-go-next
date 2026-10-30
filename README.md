@@ -9,7 +9,7 @@ Made by kalelooz.
 
 - **Timers** for power, bounty and water runes, wisdom shrines, lotus pools, camp stacks, Roshan's pit and
   respawn window, Aegis, Tormentor, the enemy glyph and your team's wards. Rules come from Valve's patch notes
-  (currently 7.41f), listed with sources in [docs/game-rules.md](docs/game-rules.md).
+  (currently 7.41f).
 - **Voice calls** 20 seconds before runes, at stack time, and before Roshan changes pit. Each role has its own
   Show and Voice switches, so a carry isn't called for stacks and a support isn't told to farm ancients.
 - **Top strip** with day and night, TP, buyback (and how much gold you're short) and your courier.
@@ -84,7 +84,7 @@ GitHub Actions ([.github/workflows/build.yml](.github/workflows/build.yml)), so 
 | `app/src/` | The windows (`index.html` overlay, `draft.html`, `settings.html`, `topbar.html`, `skillbar.html`) and the game logic they share (`timers.js`, `roles.js`, `picks.js`, ...). Each `*.test.mjs` tests the file it's named after. |
 | `app/src-tauri/` | The Rust side: listens for the game feed, runs the tray menu, and calls STRATZ. |
 | `app/src/voice/` | The recorded voice clips, one folder per voice. |
-| `docs/` | Game rules with patch sources, research notes, and the game-feed config. |
+| `docs/` | The game-feed config and the screenshot at the top of this page. |
 | `tools/` | Scripts that rebuild the hero data, neutral item tables and voice clips. |
 
 ## FAQ

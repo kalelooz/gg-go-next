@@ -1,4 +1,4 @@
-// Spawn schedules in game-clock seconds, from docs/game-rules.md (patch 7.41f)
+// Spawn schedules in game-clock seconds, from Valve's patch notes (patch 7.41f)
 export const SCHEDULES = {
   power: { label: 'Power rune', start: 360, every: 120 },
   bounty: { label: 'Bounty', start: 0, every: 240 },
@@ -34,7 +34,7 @@ export const ROSHAN_MIN = 480, ROSHAN_MAX = 660, AEGIS = 300, GLYPH = 300;
 const enemyOf = team => (team === 'radiant' ? 'dire' : 'radiant');
 
 // The glyph comes back about 1s after a team loses its first T1, its first T2 and its first melee
-// barracks (7.36 swapped first T3 for first melee barracks). See docs/game-rules.md
+// barracks (7.36 swapped first T3 for first melee barracks).
 export const GLYPH_RESET_DELAY = 1;
 const RESETS = ['t1', 't2', 'melee'];
 const FEED_TEAM = { 2: 'radiant', 3: 'dire' };
@@ -107,7 +107,7 @@ export function buybackStatus(hero, gold, gameTime) {
   return gold >= hero.buyback_cost ? { state: 'ok' } : { state: 'short', short: hero.buyback_cost - gold };
 }
 
-// See docs/game-rules.md: Roshan begins top and from 15:00 is top by day, bottom by night.
+// Valve's 7.41 notes: Roshan begins top and from 15:00 is top by day, bottom by night.
 // The Tormentor (its own corner spot, not a pit) is always on the opposite side, first at 20:00.
 export const PITS_FREE_AT = 900, TORMENTOR_AT = 1200, DAY_PIT = 'top', CYCLE = 300;
 const other = pit => (pit === 'top' ? 'bottom' : 'top');

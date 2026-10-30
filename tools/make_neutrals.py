@@ -1,5 +1,5 @@
 # Builds app/src/neutrals.js: what pro players craft per hero, role and neutral tier, from OpenDota's
-# player_matches.neutral_item_history (docs/research/neutral-items.md, sections 3-4). Free, read-only.
+# player_matches.neutral_item_history. Free, read-only.
 # Run once per patch: python -I tools\make_neutrals.py   (set SINCE to the patch's release first)
 import json, os, time, urllib.parse, urllib.request
 from collections import defaultdict

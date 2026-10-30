@@ -1,5 +1,5 @@
 // Carry farming: when you're ready for ancients, when ancients near you are up, and the :51 ancient stack.
-// Farm order from docs/research/carry.md; camp spots and creep names from our own game logs (2026-10-26).
+// Carry farm order; camp spots and creep names from our own game logs (2026-10-26).
 
 // Ancient creeps as the game feed's minimap names them; the flooded frog camp turns into these around 20:00
 export const ANCIENT = /^npc_dota_neutral_(black_dragon|black_drake|granite_golem|rock_golem|big_thunder_lizard|small_thunder_lizard|prowler_acolyte|prowler_shaman|ice_shaman|frostbitten_golem|ancient_frog|ancient_frog_mage)$/;
@@ -52,7 +52,7 @@ export function farmTip({ pos, minute, second, ready, readySince, now, me, camps
   const safe = c => !enemies.some(e => near(e, c, 2500));
   for (const [i, c] of camps.entries()) {
     if (!up.has(i) || !safe(c)) continue;
-    // ancients stack later than other camps: pull at :51 (docs/research/pulls-stacks.md)
+    // ancients stack later than other camps: pull at :51
     if (near(me, c, 1500) && second >= 44 && second < 51)
       return { id: 'stack', clip: 'farm-stack', text: `Stack the ${c.name}: hit them at :51 and walk away.` };
   }

@@ -14,3 +14,6 @@ Dota Helper/
 
 # private notes for handing work between chats
 *.local.md
+
+# internal notes, research and mockups: kept on this PC, never in the public repo
+notes/

@@ -347,7 +347,7 @@ async function loadSplit(heroId) {
   } catch {}
 }
 // Skill orders from STRATZ's 10 recent top games for this hero and role, plus talent pick rates
-// (docs/research/skill-builds.md). Two requests per hero and role, once per game.
+// Two requests per hero and role, once per game.
 async function loadSkills(heroId) {
   const key = heroId + ':' + rolePos;
   skillsFor = key; skillData = null;

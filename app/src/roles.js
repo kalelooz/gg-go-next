@@ -1,9 +1,9 @@
-// What each role sees and hears, from docs/research/SUMMARY.md (role table). Positions 1-5.
+// What each role sees and hears. Positions 1-5.
 export const ROLE_NAMES = { 1: 'Carry', 2: 'Mid', 3: 'Offlane', 4: 'Soft support', 5: 'Hard support' };
 
 // One Show and one Voice switch per part per role, and the Customize window shows exactly these:
 // no other rule quietly hides or mutes anything. Each string is the default for Carry, Mid, Offlane,
-// Pos 4, Pos 5 (1 = on), from the role table in docs/research/SUMMARY.md; you change them in Customize.
+// Pos 4, Pos 5 (1 = on); you change them in Customize.
 // [id, label in Customize, can it talk]. Aegis goes with Roshan.
 export const ROLE_PARTS = [
   ['water', 'Water runes', true], ['power', 'Power rune', true], ['bounty', 'Bounty runes', true],

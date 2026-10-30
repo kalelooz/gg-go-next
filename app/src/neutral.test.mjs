@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { craftedTier, neutralTip, picksFor } from './neutral.js';
 
-// crafted tier from the enchantment (docs/research/neutral-items.md section 2; Brawny 1, 2 and Tough 3 seen in our logs)
+// crafted tier from the enchantment (Brawny 1, 2 and Tough 3 seen in our logs)
 assert.equal(craftedTier(null), 0);
 assert.equal(craftedTier({ name: 'item_enhancement_brawny', item_level: 2 }), 2);
 assert.equal(craftedTier({ name: 'item_enhancement_tough', item_level: 3 }), 3);

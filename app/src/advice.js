@@ -1,7 +1,7 @@
-// Short advice lines from our own hero's state (docs/research/SUMMARY.md, "Rules worth building first").
+// Short advice lines from our own hero's state.
 // Each rule returns one sentence or null. Matchup items (sentries, Vessel) live in matchup-rules.js instead.
 
-// Average cumulative deaths by minute, STRATZ pubs (docs/research/macro.md section 7)
+// Average cumulative deaths by minute in STRATZ pub games
 // shortcut: one curve per role, not per hero; query STRATZ per hero if these feel off for some heroes
 const DEATH_MIN = [10, 15, 20, 25, 30, 35];
 const DEATH_AVG = { 1: [1.2, 2.0, 2.7, 3.5, 4.3, 5.1], 2: [0.9, 1.8, 2.9, 3.9, 4.9, 6.0],
@@ -52,7 +52,7 @@ export function bkbTiming(rows, bkbId) {
   for (const r of bkb) if ((n += r.matchCount) >= total / 2) return r.time;
   return null;
 }
-// heroes that skip BKB even as cores (docs/research/carry.md, items.md)
+// heroes that skip BKB even as cores
 export const BKB_SKIP = new Set(['juggernaut', 'life_stealer', 'pangolier', 'slark', 'phantom_lancer', 'spectre']);
 
 export function bkbTip({ pos, minute, heroKey, heroName, median, owned }) {
