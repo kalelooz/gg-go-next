@@ -11,3 +11,6 @@ GG Go Next/
 # error log left by a game-file extraction tool, not used by the app
 app/src/exceptions.txt
 Dota Helper/
+
+# private notes for handing work between chats
+*.local.md
