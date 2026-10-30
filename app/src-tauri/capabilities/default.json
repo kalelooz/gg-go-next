@@ -6,7 +6,8 @@
     "topbar",
     "skillbar",
     "draft",
-    "settings"
+    "settings",
+    "whatsnew"
   ],
   "permissions": [
     "core:default",

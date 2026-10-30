@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>What's new</title>
+<script>try { document.documentElement.dataset.theme = localStorage.getItem('theme') || 'dark'; } catch {}</script>
+<style>
+/* same colours as Customize */
+:root{--bg1:#1b2227;--bg2:#090c0e;--strip:#000000b7;--well:#00000066;--line:#ffffff1c;--ink:#dae2e5;--title:#b0bcc2;--label:#8b989e;--hi:#fff;
+  --gold:#ffcc33;color-scheme:dark}
+:root[data-theme=light]{--bg1:#eef1f2;--bg2:#dfe5e8;--strip:#0000001a;--well:#0000000d;--line:#00000024;--ink:#1a2024;--title:#3b4448;--label:#4f5a5f;--hi:#0d1113;
+  --gold:#8a6400;color-scheme:light}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:linear-gradient(var(--bg1),var(--bg2));color:var(--ink);font:14px/1.45 Bahnschrift,'Segoe UI',sans-serif;
+  display:flex;flex-direction:column;overflow:hidden;user-select:none}
+:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+header{display:flex;align-items:center;padding:8px 8px 8px 16px;background:var(--strip);cursor:move}
+header h1{flex:1;margin:0;font:600 13px Bahnschrift,sans-serif;text-transform:uppercase;letter-spacing:2px;color:var(--title)}
+.x{border:0;background:none;font-size:20px;line-height:1;padding:2px 8px;color:var(--label);cursor:pointer}
+.x:hover{color:var(--hi)}
+main{flex:1;overflow:auto;padding:14px 18px 6px}
+h2{margin:0 0 10px;font-size:18px;font-weight:600;color:var(--hi)}
+ul{margin:0;padding-left:18px}
+li{margin-bottom:10px}
+li::marker{color:var(--gold)}
+li b{color:var(--hi);font-weight:600}
+footer{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 18px;border-top:1px solid var(--line)}
+footer button{font:inherit;font-weight:600;border-radius:3px;padding:6px 16px;cursor:pointer}
+#all{color:var(--ink);background:none;border:1px solid var(--line)}
+#all:hover{background:var(--well)}
+#ok{color:var(--bg1);background:var(--gold);border:0}
+</style>
+</head>
+<body>
+<header data-tauri-drag-region>
+  <h1 data-tauri-drag-region>What's new</h1>
+  <button class="x" id="close" type="button" aria-label="Close">×</button>
+</header>
+<main>
+  <h2 id="title">GG Go Next</h2>
+  <ul id="changes"></ul>
+</main>
+<footer>
+  <button id="all" type="button">Every version</button>
+  <button id="ok" type="button">Got it</button>
+</footer>
+<script type="module">
+const { invoke } = window.__TAURI__.core;
+const win = window.__TAURI__.window.getCurrentWindow();
+
+// CHANGELOG.md lines are plain text with **bold** leads; escape first so a stray < can't become markup
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const bold = s => esc(s).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+
+const [version, changes] = await invoke('whats_new');
+document.getElementById('title').textContent = `GG Go Next ${version}`;
+document.getElementById('changes').innerHTML = changes.map(c => `<li>${bold(c)}</li>`).join('');
+
+document.getElementById('close').onclick = document.getElementById('ok').onclick = () => win.hide();
+document.getElementById('all').onclick = () => invoke('open_releases');
+</script>
+</body>
+</html>

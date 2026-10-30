@@ -41,24 +41,26 @@ Press **Ctrl+Shift+D** in game to open Customize. The tray icon has the draft he
 
 ## Install
 
-1. Download `GG-Go-Next.exe` from [Releases](../../releases). The release notes list its SHA-256; in PowerShell,
-   `Get-FileHash GG-Go-Next.exe` should print the same value.
+1. Download `GG-Go-Next-setup.exe` from [Releases](../../releases) and run it. The release notes list its SHA-256;
+   in PowerShell, `Get-FileHash GG-Go-Next-setup.exe` should print the same value. If you'd rather not install
+   anything, `GG-Go-Next.exe` on the same page runs as it is.
 2. Copy [docs/gamestate_integration_gggonext.cfg](docs/gamestate_integration_gggonext.cfg) into
    `Steam\steamapps\common\dota 2 beta\game\dota\cfg\gamestate_integration\` (create the last folder if it's missing).
 3. In Steam, right-click Dota 2, then Properties, and add `-gamestateintegration` to Launch Options.
 4. In Dota's video settings, pick **Borderless Window**, so the overlay can sit on top of the game.
-5. Start `GG-Go-Next.exe`. It lives in the tray.
+5. Start GG Go Next from the Start menu. It lives in the tray.
 6. For the draft helper and hints, get a token at [stratz.com/api](https://stratz.com/api) and paste it into the
    draft helper window.
 
-The exe isn't code-signed, so Windows may show a SmartScreen warning. Pick "More info", then "Run anyway".
+The files aren't code-signed, so Windows may show a SmartScreen warning. Pick "More info", then "Run anyway".
 
 **Updates:** when a new version is out, the tray menu and Customize show it with a Download button. Nothing installs
-by itself: download the new exe and replace the old one. To get an email instead, click **Watch**, then **Custom**,
-then **Releases** at the top of this page.
+by itself: download the new setup and run it, and it updates in place with your settings kept. After an update, a
+"What's new" window lists the changes once; every version is in [CHANGELOG.md](CHANGELOG.md). To get an email
+instead, click **Watch**, then **Custom**, then **Releases** at the top of this page.
 
-**Uninstall:** delete the exe, the `.cfg` file from step 2, and the `com.kalelooz.gggonext` folders in
-`%APPDATA%` and `%LOCALAPPDATA%`.
+**Uninstall:** remove GG Go Next in Windows Settings, then Apps, and delete the `.cfg` file from step 2. Without the
+installer, delete the exe and the `com.kalelooz.gggonext` folders in `%APPDATA%` and `%LOCALAPPDATA%`.
 
 ## Build it yourself
 
@@ -68,10 +70,11 @@ Needs Node.js 22 or newer and Rust (stable).
 cd app
 npm ci
 npm test
-npx tauri build --no-bundle
+npx tauri build
 ```
 
-The exe lands in `app/src-tauri/target/release/gg-go-next.exe`. Release builds come from the same steps on
+The exe lands in `app/src-tauri/target/release/gg-go-next.exe` and the installer in
+`app/src-tauri/target/release/bundle/nsis/`. Release builds come from the same steps on
 GitHub Actions ([.github/workflows/build.yml](.github/workflows/build.yml)), so the download matches this code.
 
 ## Where things are

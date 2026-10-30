@@ -163,6 +163,29 @@ fn open_releases_page() {
     let _ = std::process::Command::new("explorer").arg(RELEASES_PAGE).spawn();
 }
 
+// CHANGELOG.md is built into the exe, so "What's new" works offline and always matches this build
+const CHANGELOG: &str = include_str!("../../../CHANGELOG.md");
+
+// The "- " lines under "## <version>", without the dash
+fn changes_for(changelog: &str, version: &str) -> Vec<String> {
+    let heading = format!("## {version}");
+    changelog
+        .lines()
+        .skip_while(|l| l.trim_end() != heading)
+        .skip(1)
+        .take_while(|l| !l.starts_with("## "))
+        .filter_map(|l| l.strip_prefix("- "))
+        .map(str::to_string)
+        .collect()
+}
+
+#[tauri::command]
+fn whats_new(app: AppHandle) -> (String, Vec<String>) {
+    let version = app.package_info().version.to_string();
+    let changes = changes_for(CHANGELOG, &version);
+    (version, changes)
+}
+
 #[tauri::command]
 fn get_update(state: tauri::State<Update>) -> Option<String> {
     state.0.lock().unwrap().clone()
@@ -232,7 +255,7 @@ fn main() {
                 })
                 .build(),
         )
-        .invoke_handler(tauri::generate_handler![stratz, load_token, save_token, get_settings, set_setting, get_update, open_releases])
+        .invoke_handler(tauri::generate_handler![stratz, load_token, save_token, get_settings, set_setting, get_update, open_releases, whats_new])
         .setup(|app| {
             let saved = load_settings(app.handle());
             // another app may already own the combination; the tray item still works then
@@ -241,6 +264,27 @@ fn main() {
             }
             app.manage(Settings(Mutex::new(saved.clone())));
             app.manage(Update(Mutex::new(None)));
+
+            // "What's new" opens once per version, only after an update: a fresh install has no settings yet,
+            // while anyone who ran 0.2.0 or earlier has settings but no last_version
+            let current = app.package_info().version.to_string();
+            let last = saved["last_version"].as_str().map(str::to_string);
+            let updated = match &last {
+                Some(v) => *v != current,
+                None => saved.as_object().is_some_and(|o| !o.is_empty()),
+            };
+            if last.as_deref() != Some(current.as_str()) {
+                let state = app.state::<Settings>();
+                let mut s = state.0.lock().unwrap();
+                s["last_version"] = json!(current);
+                save_settings(app.handle(), &s);
+            }
+            if updated && !changes_for(CHANGELOG, &current).is_empty() {
+                if let Some(w) = app.get_webview_window("whatsnew") {
+                    let _ = w.show();
+                    let _ = w.set_focus();
+                }
+            }
 
             let win = app.get_webview_window("overlay").unwrap();
             // A small box in the top-right corner, not a full-screen layer: Windows composites
@@ -467,7 +511,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::{is_newer, trim_logs};
+    use super::{changes_for, is_newer, trim_logs, CHANGELOG};
 
     fn names(dir: &std::path::Path) -> Vec<String> {
         let mut v: Vec<String> = std::fs::read_dir(dir).unwrap().flatten().map(|e| e.file_name().into_string().unwrap()).collect();
@@ -502,5 +546,25 @@ mod tests {
         assert!(!is_newer("v0.1.0", "0.2.0"));
         assert!(!is_newer("v0.3.0-beta", "0.2.0"));
         assert!(!is_newer("", "0.1.0"));
+    }
+
+    #[test]
+    fn changelog_sections() {
+        let log = "# Changelog
+
+## 0.2.0
+
+- **A.** one
+- two
+
+## 0.1.0
+
+- old
+";
+        assert_eq!(changes_for(log, "0.2.0"), ["**A.** one", "two"]);
+        assert_eq!(changes_for(log, "0.1.0"), ["old"]);
+        assert!(changes_for(log, "0.3.0").is_empty());
+        // the shipped changelog must describe the version being built
+        assert!(!changes_for(CHANGELOG, env!("CARGO_PKG_VERSION")).is_empty());
     }
 }
