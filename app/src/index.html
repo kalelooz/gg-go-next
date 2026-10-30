@@ -51,8 +51,9 @@ body{font-family:Bahnschrift,'Segoe UI',sans-serif;font-stretch:semi-condensed;c
 #wards b{color:#fff;font-weight:600}
 #wards .due{color:#FFD24A;font-weight:600}
 #wards .quip{font-style:italic;color:rgb(255 255 255 / .8)}
-/* what players on your hero finish around now, one per line like Dota's shop suggestions */
-#items{margin-top:.5em;padding:.35em .5em .4em;background:rgb(0 0 0 / .35);border:1px solid rgb(255 255 255 / .12);border-radius:4px;font-size:.82em}
+/* what players on your hero finish around now, one per line like Dota's shop suggestions.
+   contain: as wide as the timer column, so a long tip wraps instead of stretching every row */
+#items{margin-top:.5em;padding:.35em .5em .4em;background:rgb(0 0 0 / .35);border:1px solid rgb(255 255 255 / .12);border-radius:4px;font-size:.82em;contain:inline-size}
 #items .ih{display:flex;justify-content:space-between;font-size:.78em;letter-spacing:.12em;text-transform:uppercase;color:rgb(255 255 255 / .55);margin-bottom:.2em}
 #items .it{display:flex;align-items:center;gap:.5em;height:1.75em;white-space:nowrap}
 #items img{height:1.35em;width:1.85em;object-fit:cover;border-radius:2px;box-shadow:0 0 0 1px #000c,0 1px 3px #000}
