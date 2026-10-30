@@ -1,6 +1,6 @@
 # Builds the exe on GitHub's own Windows machines, so anyone can check that a release comes from this code.
 # Every push and pull request runs the tests and keeps the exe as a build artifact.
-# Pushing a tag like v0.2.0 also publishes a release with the exe and its SHA-256.
+# Pushing a tag like v0.2.0 also publishes a release with the exe, its SHA-256, and latest.json for one-click updates.
 name: build
 
 on:
@@ -43,14 +43,42 @@ jobs:
         run: cargo test
 
       - name: Build
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         working-directory: app
         run: npx tauri build
+
+      # Releases also sign the setup for the in-app updater; the key and its password are repository secrets
+      - name: Build and sign the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        working-directory: app
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npx tauri build --config src-tauri/tauri.release.conf.json
+
+      # The updater reads latest.json from the newest release: version, notes, and the setup's address and signature
+      - name: Write latest.json
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $version = (Get-Content app/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $sig = Get-Content (Get-ChildItem app/src-tauri/target/release/bundle/nsis/*-setup.exe.sig) -Raw
+          New-Item -ItemType Directory dist -Force | Out-Null
+          @{
+            version = $version
+            pub_date = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+            platforms = @{ 'windows-x86_64' = @{
+              signature = $sig.Trim()
+              url = "https://github.com/kalelooz/gg-go-next/releases/download/v$version/GG-Go-Next-setup.exe"
+            } }
+          } | ConvertTo-Json -Depth 4 | Set-Content dist/latest.json
+          Get-Content dist/latest.json
 
       # Release notes: this version's section of CHANGELOG.md, then the SHA-256 of both downloads
       - name: Name the files, hash them and write the notes
         shell: pwsh
         run: |
-          New-Item -ItemType Directory dist | Out-Null
+          New-Item -ItemType Directory dist -Force | Out-Null
           Copy-Item app/src-tauri/target/release/gg-go-next.exe dist/GG-Go-Next.exe
           Copy-Item (Get-ChildItem app/src-tauri/target/release/bundle/nsis/*-setup.exe) dist/GG-Go-Next-setup.exe
           $version = (Get-Content app/src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
@@ -78,4 +106,5 @@ jobs:
           files: |
             dist/GG-Go-Next-setup.exe
             dist/GG-Go-Next.exe
+            dist/latest.json
           body_path: dist/NOTES.md

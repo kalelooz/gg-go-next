@@ -10,6 +10,7 @@ use tauri::menu::{CheckMenuItem, IsMenuItem, Menu, MenuItem, PredefinedMenuItem,
 use tauri::tray::TrayIconBuilder;
 use tauri::{AppHandle, Emitter, Manager, WindowEvent};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
+use tauri_plugin_updater::UpdaterExt;
 
 // Opens the Customize window over the game and closes it again, so nobody has to alt-tab to the tray
 const HOTKEY: &str = "ctrl+shift+d";
@@ -133,7 +134,7 @@ async fn stratz(token: String, query: String) -> Result<String, String> {
 }
 
 // Update notice: one request to GitHub at start (unless "Check for updates" is off). Nothing downloads or
-// installs by itself; the tray item and Customize's banner only open the releases page.
+// installs by itself; the tray item and Customize's banner run install_update when clicked.
 const RELEASES_API: &str = "https://api.github.com/repos/kalelooz/gg-go-next/releases/latest";
 const RELEASES_PAGE: &str = "https://github.com/kalelooz/gg-go-next/releases/latest";
 
@@ -261,9 +262,34 @@ fn get_update(state: tauri::State<Update>) -> Option<String> {
     state.0.lock().unwrap().clone()
 }
 
+// Installed copies update in one click: the updater downloads the new setup from the release, checks its signature
+// against the public key in tauri.conf.json and runs it, which closes the app on Windows. The single exe has no
+// installer to update, so it opens the releases page, and so does any failure.
+fn installed() -> bool {
+    std::env::current_exe().is_ok_and(|p| p.with_file_name("uninstall.exe").is_file())
+}
+
 #[tauri::command]
-fn open_releases() {
-    open_releases_page();
+fn is_installed() -> bool {
+    installed()
+}
+
+#[tauri::command]
+async fn install_update(app: AppHandle) -> Result<(), String> {
+    if !installed() {
+        open_releases_page();
+        return Ok(());
+    }
+    let result = async {
+        let update = app.updater().map_err(|e| e.to_string())?.check().await.map_err(|e| e.to_string())?;
+        let update = update.ok_or("GitHub has no update file for this release")?;
+        update.download_and_install(|_, _| {}, || {}).await.map_err(|e| e.to_string())
+    }
+    .await;
+    if result.is_err() {
+        open_releases_page();
+    }
+    result
 }
 
 // The token lives in a file, not the webview's localStorage: WebView2 writes that to disk lazily,
@@ -316,6 +342,7 @@ const ROLES: [(&str, &str); 6] = [
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(|app, _shortcut, event| {
@@ -325,7 +352,7 @@ fn main() {
                 })
                 .build(),
         )
-        .invoke_handler(tauri::generate_handler![stratz, load_token, save_token, get_settings, set_setting, get_update, open_releases, whats_new, open_feedback, dota_setup])
+        .invoke_handler(tauri::generate_handler![stratz, load_token, save_token, get_settings, set_setting, get_update, is_installed, install_update, whats_new, open_feedback, dota_setup])
         .setup(|app| {
             let saved = load_settings(app.handle());
             // another app may already own the combination; the tray item still works then
@@ -488,7 +515,7 @@ fn main() {
                     let _ = handle.emit("update", version.clone());
                     let h = handle.clone();
                     let _ = handle.run_on_main_thread(move || {
-                        let label = format!("Version {version} is out: download");
+                        let label = format!("Version {version} is out: {}", if installed() { "update now" } else { "download" });
                         if let Ok(item) = MenuItem::with_id(&h, "update", label, true, None::<&str>) {
                             let _ = menu.insert(&item, 0);
                             if let Ok(sep) = PredefinedMenuItem::separator(&h) {
@@ -511,7 +538,7 @@ fn main() {
                         return;
                     }
                     if id == "update" {
-                        open_releases_page();
+                        tauri::async_runtime::spawn(install_update(app.clone()));
                         return;
                     }
                     if let Some(kind) = id.strip_prefix("feedback:") {

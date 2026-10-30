@@ -6,6 +6,7 @@ GitHub release uses the same text, so keep every change on one line that starts 
 ## 0.4.0
 
 - **One-click Dota setup.** Customize has a "Set up Dota" button that finds Dota through Steam and puts the game-data file in its folder, so nobody has to copy it by hand. A line under it turns green once Dota is connected. On a fresh install, Customize opens by itself until this is done.
+- **One-click updates.** When a newer version is out, Update now in Customize or the tray downloads it, checks its signature, installs it and opens the app again. Nothing installs without that click. The single exe still opens the download page.
 
 ## 0.3.0
 

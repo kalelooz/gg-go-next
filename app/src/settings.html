@@ -102,7 +102,7 @@ select{font:inherit;color:var(--ink);background:var(--well);border:1px solid var
   <button type="button" data-kind="question">I have a question</button>
 </div>
 <div id="update" role="status" hidden>
-  <span>GG Go Next <b id="updateVersion"></b> is out.</span>
+  <span id="updateText">GG Go Next <b id="updateVersion"></b> is out.</span>
   <button id="getUpdate" type="button">Download</button>
 </div>
 <main>
@@ -285,7 +285,18 @@ const showUpdate = v => {
   document.getElementById('updateVersion').textContent = v;
   document.getElementById('update').hidden = false;
 };
-document.getElementById('getUpdate').onclick = () => invoke('open_releases');
+// installed copies update in place; the single exe opens the download page instead (main.rs install_update)
+const getUpdate = document.getElementById('getUpdate'), updateText = document.getElementById('updateText');
+invoke('is_installed').then(yes => { if (yes) getUpdate.textContent = 'Update now'; }).catch(() => {});
+getUpdate.onclick = async () => {
+  const inPlace = getUpdate.textContent === 'Update now';
+  if (inPlace) {
+    getUpdate.disabled = true;
+    updateText.textContent = 'Downloading the update. GG Go Next closes, installs it and opens again by itself.';
+  }
+  try { await invoke('install_update'); }
+  catch { updateText.textContent = 'It couldn\'t update by itself, so the download page is open in your browser.'; getUpdate.disabled = false; }
+};
 invoke('get_update').then(showUpdate).catch(() => {});
 window.__TAURI__.event.listen('update', e => showUpdate(e.payload));
 addEventListener('keydown', e => { if (e.key === 'Escape') hide(); });

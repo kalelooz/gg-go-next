@@ -35,7 +35,7 @@ Press **Ctrl+Shift+D** in game to open Customize. The tray icon has the draft he
   - **STRATZ**, with your own free token, for the draft numbers and the in-game hints.
   - **Valve's image server**, for item and hero pictures.
   - **GitHub**, asked once at start whether a newer version is out. Turn off "Check for updates" in Customize to
-    skip it.
+    skip it. When you click Update now, the new setup also comes from GitHub.
 - Your settings and STRATZ token stay in `%APPDATA%\com.kalelooz.gggonext`.
 - Game-feed logs are off. Turn on "Save game-feed logs" in Customize only if you want to send a bug report.
 
@@ -57,8 +57,9 @@ Press **Ctrl+Shift+D** in game to open Customize. The tray icon has the draft he
 
 The files aren't code-signed, so Windows may show a SmartScreen warning. Pick "More info", then "Run anyway".
 
-**Updates:** when a new version is out, the tray menu and Customize show it with a Download button. Nothing installs
-by itself: download the new setup and run it, and it updates in place with your settings kept. After an update, a
+**Updates:** when a new version is out, the tray menu and Customize show it with an **Update now** button. One click
+downloads the new setup, checks its signature, installs it with your settings kept and opens the app again. Nothing
+installs without that click. Versions before 0.4.0, and the single exe, open the download page instead. After an update, a
 "What's new" window lists the changes once; every version is in [CHANGELOG.md](CHANGELOG.md). To get an email
 instead, click **Watch**, then **Custom**, then **Releases** at the top of this page.
 
