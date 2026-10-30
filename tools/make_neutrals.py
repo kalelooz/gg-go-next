@@ -23,7 +23,7 @@ EXTRA_NAMES = {'guardian_shell': 'Defiant Shell', 'keep': 'keep yours'}
 
 def get(path):
     # OpenDota refuses Python's default User-Agent (403)
-    req = urllib.request.Request(API + path, headers={'User-Agent': 'dota-helper/0.1'})
+    req = urllib.request.Request(API + path, headers={'User-Agent': 'gg-go-next/0.1'})
     with urllib.request.urlopen(req, timeout=120) as r:
         return json.load(r)
 

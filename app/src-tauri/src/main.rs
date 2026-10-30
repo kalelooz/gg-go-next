@@ -25,7 +25,7 @@ fn toggle_settings(app: &AppHandle) {
     }
 }
 
-// Must match the uri in Dota's gamestate_integration_dotahelper.cfg
+// Must match the uri in Dota's gamestate_integration_gggonext.cfg
 const GSI_ADDR: &str = "127.0.0.1:3101";
 
 // Raw game-feed logs: one file per app run. Oldest go first past either limit; logs/keep/ is never touched.
@@ -309,7 +309,7 @@ fn main() {
             let tray_menu = menu.clone();
             TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
-                .tooltip("Dota Helper")
+                .tooltip("GG Go Next")
                 .menu(&menu)
                 .on_menu_event(move |app, ev| {
                     let id = ev.id().as_ref();
@@ -390,7 +390,7 @@ fn main() {
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("failed to start Dota Helper");
+        .expect("failed to start GG Go Next");
 }
 
 #[cfg(test)]
@@ -405,7 +405,7 @@ mod tests {
 
     #[test]
     fn keeps_newest_logs_and_leaves_other_files() {
-        let dir = std::env::temp_dir().join(format!("dota-helper-trim-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("gg-go-next-trim-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(dir.join("keep")).unwrap();
         for s in 100..105 {

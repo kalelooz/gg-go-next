@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Dota Helper",
+  "productName": "GG Go Next",
   "version": "0.1.0",
-  "identifier": "com.kalelooz.dotahelper",
+  "identifier": "com.kalelooz.gggonext",
   "build": {
     "frontendDist": "../src"
   },
@@ -11,7 +11,7 @@
     "windows": [
       {
         "label": "overlay",
-        "title": "Dota Helper",
+        "title": "GG Go Next",
         "width": 324,
         "height": 260,
         "decorations": false,
@@ -25,7 +25,7 @@
       },
       {
         "label": "topbar",
-        "title": "Dota Helper top bar",
+        "title": "GG Go Next top bar",
         "url": "topbar.html",
         "width": 860,
         "height": 28,
@@ -40,7 +40,7 @@
       },
       {
         "label": "skillbar",
-        "title": "Dota Helper skill bar",
+        "title": "GG Go Next skill bar",
         "url": "skillbar.html",
         "width": 1120,
         "height": 220,

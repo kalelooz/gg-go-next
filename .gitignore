@@ -6,7 +6,8 @@ app/src-tauri/gen/
 *.pdb
 
 # the installed copy and its game-feed logs (large, and personal match data)
-Dota Helper/
+GG Go Next/
 
 # error log left by a game-file extraction tool, not used by the app
 app/src/exceptions.txt
+Dota Helper/
