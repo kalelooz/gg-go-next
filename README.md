@@ -92,6 +92,10 @@ written with Claude Code.
 Open an issue. If you can, turn on "Save game-feed logs", reproduce it, and attach the newest file from the
 `logs` folder next to the exe.
 
+## Support
+
+GG Go Next is free. If it helps your games, you can tip at [ko-fi.com/kalelooz](https://ko-fi.com/kalelooz).
+
 ## Credits
 
 - Draft and item data: [STRATZ](https://stratz.com)
