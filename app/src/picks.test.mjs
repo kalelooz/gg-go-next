@@ -1,6 +1,6 @@
 // Tests for picks.js. npm test runs every test file with plain node; a failed assert stops the run.
 import assert from 'node:assert/strict';
-import { suggest, myPool, rolePools, grade, teamShape, draftEdge, heroPositions, posShare, assignPositions, laneStats, laneScore, LANE_VS, LANE_PARTNER } from './picks.js';
+import { suggest, myPool, rolePools, grade, teamShape, draftEdge, heroPositions, posShare, assignPositions, laneStats, laneScore, LANE_VS, LANE_PARTNER, myBest, patchBest } from './picks.js';
 
 // positions: Invoker is a mid, Pudge mostly 4 then 3, Lion 4/5
 {
@@ -85,3 +85,27 @@ assert.deepEqual(shape.map(s => s.n), [2, 1, 1, 0, 0]);
 assert.equal(draftEdge([68, 31], [59, 12], id => vs[id]), 5);
 assert.equal(draftEdge([1], [59], id => vs[id]), null);
 console.log('picks ok');
+
+// before the draft: a 4-1 hero doesn't beat a 60-40 one, and 2-game heroes are left out
+{
+  const best = myBest([
+    { hero_id: '1', games: 5, win: 4 }, { hero_id: '2', games: 100, win: 60 },
+    { hero_id: '3', games: 2, win: 2 }, { hero_id: '4', games: 50, win: 20 },
+  ]);
+  assert.deepEqual(best.map(h => h.id), [2, 1, 4]);
+  assert.equal(best[0].wins, 60);
+}
+// patch: only weeks from the patch on; a hero with too few games at the position isn't ranked
+{
+  const rows = [
+    { heroId: 1, week: 100, matchCount: 1000, winCount: 900 },   // before the patch, ignored
+    { heroId: 1, week: 200, matchCount: 1000, winCount: 520 },
+    { heroId: 2, week: 200, matchCount: 1000, winCount: 540 },
+    { heroId: 3, week: 200, matchCount: 3, winCount: 3 },
+  ];
+  const r = patchBest(rows, 150);
+  assert.equal(r.from, 200);
+  assert.deepEqual(r.heroes.map(h => h.id), [2, 1]);
+  // the patch is newer than any week: use the newest week
+  assert.equal(patchBest(rows, 999).from, 200);
+}

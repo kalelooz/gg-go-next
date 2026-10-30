@@ -88,6 +88,7 @@ header button{padding:4px 10px;font-size:13px}
 .sugg h2{font-size:16px;font-weight:600;margin:0;flex:1}
 .pool button{padding:3px 9px;font-size:13px}
 .pool button[aria-pressed=true]{border-color:var(--ink);background:var(--ink);color:var(--bg)}
+.sugg .top[hidden]{display:none}
 .sugg .rank{padding-top:0;font-size:13px;color:var(--soft)}
 .sugg .rank small{flex:1;text-align:right;font-size:12px;color:var(--muted)}
 /* position menu on each picked hero: muted when guessed, solid when you set it, red edge when it's an odd spot */
@@ -132,6 +133,8 @@ body.dragging,body.dragging *{cursor:grabbing!important}
 .pick .score b{display:block;font-size:20px;font-variant-numeric:tabular-nums}
 .pick .score small{display:block;font-size:11px;color:var(--muted);max-width:110px}
 .pos{color:var(--ally)}.neg{color:var(--enemy)}
+.pick .src{margin-left:auto;flex:none;border:0;background:transparent;padding:2px 4px;font-size:12px;color:var(--muted)}
+.pick .src:hover{color:var(--ink);text-decoration:underline}
 .note{color:var(--soft);padding:6px 0;margin:0}
 
 .edge{display:flex;align-items:center;gap:10px}
@@ -202,11 +205,11 @@ footer .row{display:flex;gap:6px}
   <div class="top">
     <h2 id="suggTitle">Best picks</h2>
     <div class="pool" role="group" aria-label="Suggest from">
-      <button type="button" data-pool="mine">Heroes you play</button>
+      <button type="button" data-pool="mine" id="mineBtn">Heroes you play</button>
       <button type="button" data-pool="all" id="allBtn">All heroes</button>
     </div>
   </div>
-  <div class="top rank">
+  <div class="top rank" id="rankRow">
     <span>Rank by</span>
     <div class="pool" role="group" aria-label="Rank suggestions by">
       <button type="button" data-rank="game" title="Win-rate edge over all five enemies for the whole game">Whole game</button>
@@ -227,7 +230,7 @@ footer .row{display:flex;gap:6px}
 
 <script type="module">
 import { search, heroById } from './search.js';
-import { suggest, myPool, rolePools, grade, teamShape, draftEdge, heroPositions, posShare, assignPositions, laneStats, laneScore, LANE_VS, LANE_PARTNER } from './picks.js';
+import { suggest, myPool, rolePools, grade, teamShape, draftEdge, heroPositions, posShare, assignPositions, laneStats, laneScore, LANE_VS, LANE_PARTNER, myBest, patchBest } from './picks.js';
 
 const BRACKET = 'DIVINE_IMMORTAL', WEEKS = 5;
 // pairs with fewer games than this are too noisy to rank on
@@ -271,6 +274,7 @@ const matchups = new Map();     // heroId -> { vs: Map, with: Map } or null whil
 const myHeroes = {};            // pos -> [{ hero_id, games, win }]
 let roles = null;               // pos -> [heroId] from STRATZ
 let heroPos = {};               // heroId -> { games, wins } per position, from STRATZ
+const patchTop = {};            // pos -> { patch, from, heroes } before the draft, null while loading
 const lanes = new Map();        // `${pos}:${heroId}` -> { vs, with } laneStats
 // a hero rarely played in a position (under this share of its games) gets flagged there
 const RARE = 0.05;
@@ -280,6 +284,8 @@ let lastMatch = null, hiddenFor = null, sidesFor = null;
 const status = (text, err = false) => { $('status').textContent = text; $('status').classList.toggle('err', err); };
 const taken = () => new Set([...state.enemy, ...state.ally, ...state.ban]);
 const img = h => `<img class="h" src="${h.img}" alt="" loading="lazy">`;
+// credit where the numbers come from, and a way to dig deeper
+const stratzLink = id => `<button type="button" class="src" data-stratz="${id}" title="Open ${heroById[id].name}'s matchups on stratz.com">STRATZ ↗</button>`;
 const fmtPts = v => (v > 0 ? '+' : '') + v.toFixed(1);
 
 // --- STRATZ ---
@@ -398,6 +404,30 @@ async function loadLanes(pos, ids) {
   finally { laneBusy = false; }
   // the role or the pool may have changed while this ran; renderPicks asks for whatever is still missing
   renderPicks();
+}
+
+// Before the draft: everyone's best heroes at a position since the newest patch (Divine and Immortal).
+// STRATZ's per-patch table lags a patch behind, so this adds up its weekly numbers from the patch date on.
+async function loadPatch(pos) {
+  if (pos in patchTop) return;
+  const key = `patch:${pos}:${today}`;
+  const cached = store.get(key);
+  if (cached) { patchTop[pos] = JSON.parse(cached); renderPicks(); return; }
+  if (!token()) return;
+  patchTop[pos] = null;
+  try {
+    const d = await stratz(`{ constants { gameVersions { name asOfDateTime } }
+      heroStats { winWeek(take: 10, positionIds: [POSITION_${pos}], bracketIds: [DIVINE, IMMORTAL]) { heroId week matchCount winCount } } }`);
+    const patch = d.constants.gameVersions.reduce((a, b) => (b.asOfDateTime > a.asOfDateTime ? b : a));
+    const rows = d.heroStats.winWeek;
+    if (!rows?.length) throw new Error('STRATZ sent no games for this role');
+    patchTop[pos] = { patch: patch.name, ...patchBest(rows, patch.asOfDateTime) };
+    store.set(key, JSON.stringify(patchTop[pos]));
+    renderPicks();
+  } catch (e) {
+    delete patchTop[pos];
+    status(`Couldn't load this patch's best ${ROLE[pos]} heroes: ${e.message || e}`, true);
+  }
 }
 
 async function loadMine(pos) {
@@ -570,6 +600,7 @@ placeSides();
 $('theme').onclick = () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
 $('clear').onclick = clearDraft;
 $('close').onclick = () => win.hide();
+$('picks').onclick = e => { const b = e.target.closest('[data-stratz]'); if (b) invoke('open_stratz', { hero: Number(b.dataset.stratz) }); };
 $('saveToken').onclick = async () => {
   const t = $('token').value.trim();
   if (!t) { status('Paste the token first.', true); return; }
@@ -655,14 +686,14 @@ function pickList() {
 }
 
 function renderPicks() {
-  $('suggTitle').textContent = `Best picks at ${ROLE[state.pos]}`;
-  $('allBtn').textContent = `All ${ROLE[state.pos].toLowerCase()} heroes`;
+  const el = $('picks'), empty = !state.enemy.length && !state.ally.length;
+  // before any pick the two pool buttons switch between your best heroes and this patch's best at your role
+  $('suggTitle').textContent = `${empty ? 'Strong picks' : 'Best picks'} at ${ROLE[state.pos]}`;
+  $('mineBtn').textContent = empty ? 'Your best' : 'Heroes you play';
+  $('allBtn').textContent = empty ? `Best in ${patchTop[state.pos]?.patch || 'this patch'}` : `All ${ROLE[state.pos].toLowerCase()} heroes`;
+  $('rankRow').hidden = empty;
   document.querySelectorAll('[data-pool]').forEach(b => b.setAttribute('aria-pressed', b.dataset.pool === state.pool));
-  const el = $('picks');
-  if (!state.enemy.length && !state.ally.length) {
-    el.innerHTML = token() ? '<p class="note">Add the enemy heroes as they get picked. Suggestions appear after the first one.</p>' : '';
-    return;
-  }
+  if (empty) { el.innerHTML = token() ? beforeDraft() : ''; return; }
   if (!token()) { el.innerHTML = teamCard(null); return; }
   const list = pickList();
   if (list.loading || !list.ids || ![...state.enemy, ...state.ally].some(id => matchups.get(id))) {
@@ -709,10 +740,33 @@ function renderPicks() {
     }).join('');
     const side = m?.games ? `you: ${m.games} games, ${Math.round(100 * m.win / m.games)}% won`
       : p.withSum > 0.5 ? `works with your team ${fmtPts(p.withSum)}` : '';
-    return `<div class="pick">${img(h)}<div class="main"><div class="nm"><b>${h.name}</b>${g ? `<span class="g ${g}" title="Grade from its average edge per enemy">${g}</span>` : ''}</div>
+    return `<div class="pick">${img(h)}<div class="main"><div class="nm"><b>${h.name}</b>${g ? `<span class="g ${g}" title="Grade from its average edge per enemy">${g}</span>` : ''}${stratzLink(p.id)}</div>
       <div class="vs">${chips}</div>${laneRow}</div>
       <div class="score"><b class="${bigVal >= 0 ? 'pos' : 'neg'}">${big}</b>${other ? `<small class="ln">${other}</small>` : ''}<small>${side}</small></div></div>`;
   }).join('') + '</div>' + teamCard(best);
+}
+
+// Before the first pick: a ranked list for the tab you're on, and what the numbers come from
+function beforeDraft() {
+  const after = '<p class="note">Add the enemy heroes as they get picked. Counter picks replace this list after the first one.</p>';
+  const row = (h, wins, games) => `<div class="pick">${img(heroById[h])}<div class="main"><div class="nm"><b>${heroById[h].name}</b>${stratzLink(h)}</div></div>
+    <div class="score"><b>${(100 * wins / games).toFixed(1)}%</b><small>won, ${games.toLocaleString('en-US')} games</small></div></div>`;
+  const usable = list => list.filter(x => heroById[x.id] && !taken().has(x.id));
+  if (state.pool === 'mine') {
+    if (!accountId) return '<p class="note">Your heroes show once Dota has been open with GG Go Next running, so it knows your account.</p>' + after;
+    const mine = myHeroes[state.pos];
+    if (!mine) return '<p class="note">Loading your games…</p>';
+    const list = usable(myBest(mine));
+    if (!list.length) return `<p class="note">STRATZ has under 5 games for you on any ${ROLE[state.pos]} hero. Try the other tab.</p>` + after;
+    return `<p class="note">Your games at ${ROLE[state.pos]}, best win rate first. Heroes with only a few games count for less.</p>
+      <div class="card">${list.map(x => row(x.id, x.wins, x.games)).join('')}</div>` + after;
+  }
+  loadPatch(state.pos);
+  const p = patchTop[state.pos];
+  if (!p) return '<p class="note">Loading the numbers for this patch…</p>';
+  const since = new Date(p.from * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  return `<p class="note">Divine and Immortal games at ${ROLE[state.pos]} since ${since}, ${p.patch}. Best win rate first, among heroes played there often.</p>
+    <div class="card">${usable(p.heroes).map(x => row(x.id, x.wins, x.games)).join('')}</div>` + after;
 }
 
 // Draft edge (needs matchups) and team shape (works from hero roles alone)

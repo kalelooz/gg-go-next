@@ -126,3 +126,33 @@ export function laneScore(vs, withs, laners, partner, minLanes = 80) {
 export function myPool(playerHeroes, minGames = 30) {
   return playerHeroes.filter(h => h.games >= minGames).map(h => Number(h.hero_id));
 }
+
+// --- before the draft: best heroes at a position ---
+// Your heroes, best first. A few lucky games shouldn't beat a long record, so each hero starts as if it had
+// `prior` games at 50%; heroes under `minGames` are left out.
+export function myBest(playerHeroes, { minGames = 5, prior = 20, limit = 10 } = {}) {
+  const rate = h => (h.win + prior / 2) / (h.games + prior);
+  return playerHeroes.filter(h => h.games >= minGames)
+    .map(h => ({ id: Number(h.hero_id), games: h.games, wins: h.win }))
+    .sort((a, b) => rate({ win: b.wins, games: b.games }) - rate({ win: a.wins, games: a.games }))
+    .slice(0, limit);
+}
+
+// Everyone's best heroes at a position this patch, from STRATZ winWeek rows ({ heroId, week, matchCount, winCount }).
+// Only weeks that start on or after the patch count; right after a patch that's none, so it falls back to the newest
+// week. Heroes with under `minShare` of the position's games are too rare there to rank.
+export function patchBest(rows, since, { minShare = 0.005, limit = 10 } = {}) {
+  const newest = Math.max(...rows.map(r => r.week));
+  const used = rows.filter(r => r.week >= Math.min(since, newest));
+  const sum = new Map();
+  for (const r of used) {
+    const s = sum.get(r.heroId) || { id: r.heroId, games: 0, wins: 0 };
+    s.games += r.matchCount; s.wins += r.winCount;
+    sum.set(r.heroId, s);
+  }
+  const total = [...sum.values()].reduce((t, s) => t + s.games, 0);
+  const from = Math.min(...used.map(r => r.week));
+  const heroes = [...sum.values()].filter(s => s.games >= total * minShare)
+    .sort((a, b) => b.wins / b.games - a.wins / a.games).slice(0, limit);
+  return { from, heroes };
+}

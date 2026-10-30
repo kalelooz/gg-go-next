@@ -253,10 +253,12 @@ fn hide_tray_overflow_once_menu_opens() {
     });
 }
 
-// Customize's "Open stratz.com/api" button; a fixed address like the other links
+// Customize's "Open stratz.com/api" button, or a hero's matchups page from the draft helper.
+// The hero is a number, so the address can't be anything but a STRATZ page.
 #[tauri::command]
-fn open_stratz() {
-    let _ = std::process::Command::new("explorer").arg("https://stratz.com/api").spawn();
+fn open_stratz(hero: Option<u32>) {
+    let url = hero.map_or("https://stratz.com/api".into(), |id| format!("https://stratz.com/heroes/{id}/matchups"));
+    let _ = std::process::Command::new("explorer").arg(url).spawn();
 }
 
 #[tauri::command]
