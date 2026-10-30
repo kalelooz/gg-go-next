@@ -132,6 +132,47 @@ async fn stratz(token: String, query: String) -> Result<String, String> {
     .map_err(|e| e.to_string())?
 }
 
+// Update notice: one request to GitHub at start (unless "Check for updates" is off). Nothing downloads or
+// installs by itself; the tray item and Customize's banner only open the releases page.
+const RELEASES_API: &str = "https://api.github.com/repos/kalelooz/gg-go-next/releases/latest";
+const RELEASES_PAGE: &str = "https://github.com/kalelooz/gg-go-next/releases/latest";
+
+// Newest version on GitHub, set only when it's newer than this build
+struct Update(Mutex<Option<String>>);
+
+// "v0.2.0" against "0.1.0"; anything that isn't plain numbers (a pre-release tag) never counts as newer
+fn is_newer(tag: &str, current: &str) -> bool {
+    let parse = |v: &str| v.trim_start_matches('v').split('.').map(|n| n.parse::<u64>().ok()).collect::<Option<Vec<_>>>();
+    matches!((parse(tag), parse(current)), (Some(a), Some(b)) if a > b)
+}
+
+fn latest_release_tag(current: &str) -> Option<String> {
+    let body = ureq::get(RELEASES_API)
+        .set("User-Agent", &format!("gg-go-next/{current}"))
+        .set("Accept", "application/vnd.github+json")
+        .timeout(std::time::Duration::from_secs(10))
+        .call()
+        .ok()?
+        .into_string()
+        .ok()?;
+    serde_json::from_str::<Value>(&body).ok()?["tag_name"].as_str().map(str::to_string)
+}
+
+// The page is a fixed address, never a link taken from the API answer
+fn open_releases_page() {
+    let _ = std::process::Command::new("explorer").arg(RELEASES_PAGE).spawn();
+}
+
+#[tauri::command]
+fn get_update(state: tauri::State<Update>) -> Option<String> {
+    state.0.lock().unwrap().clone()
+}
+
+#[tauri::command]
+fn open_releases() {
+    open_releases_page();
+}
+
 // The token lives in a file, not the webview's localStorage: WebView2 writes that to disk lazily,
 // so closing the app soon after saving lost it
 fn token_path(app: &tauri::AppHandle) -> Result<std::path::PathBuf, String> {
@@ -191,7 +232,7 @@ fn main() {
                 })
                 .build(),
         )
-        .invoke_handler(tauri::generate_handler![stratz, load_token, save_token, get_settings, set_setting])
+        .invoke_handler(tauri::generate_handler![stratz, load_token, save_token, get_settings, set_setting, get_update, open_releases])
         .setup(|app| {
             let saved = load_settings(app.handle());
             // another app may already own the combination; the tray item still works then
@@ -199,6 +240,7 @@ fn main() {
                 eprintln!("hotkey {HOTKEY} not available: {e}");
             }
             app.manage(Settings(Mutex::new(saved.clone())));
+            app.manage(Update(Mutex::new(None)));
 
             let win = app.get_webview_window("overlay").unwrap();
             // A small box in the top-right corner, not a full-screen layer: Windows composites
@@ -306,6 +348,27 @@ fn main() {
             menu.append(&MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?)?;
 
             app.manage(TrayMenu(menu.clone()));
+            if saved["toggles"]["check_updates"].as_bool() != Some(false) {
+                let handle = app.handle().clone();
+                let menu = menu.clone();
+                std::thread::spawn(move || {
+                    let current = handle.package_info().version.to_string();
+                    let Some(tag) = latest_release_tag(&current).filter(|t| is_newer(t, &current)) else { return };
+                    let version = tag.trim_start_matches('v').to_string();
+                    *handle.state::<Update>().0.lock().unwrap() = Some(version.clone());
+                    let _ = handle.emit("update", version.clone());
+                    let h = handle.clone();
+                    let _ = handle.run_on_main_thread(move || {
+                        let label = format!("Version {version} is out: download");
+                        if let Ok(item) = MenuItem::with_id(&h, "update", label, true, None::<&str>) {
+                            let _ = menu.insert(&item, 0);
+                            if let Ok(sep) = PredefinedMenuItem::separator(&h) {
+                                let _ = menu.insert(&sep, 1);
+                            }
+                        }
+                    });
+                });
+            }
             let tray_menu = menu.clone();
             TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
@@ -315,6 +378,10 @@ fn main() {
                     let id = ev.id().as_ref();
                     if id == "quit" {
                         app.exit(0);
+                        return;
+                    }
+                    if id == "update" {
+                        open_releases_page();
                         return;
                     }
                     if id == "draft" || id == "settings" {
@@ -400,7 +467,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::trim_logs;
+    use super::{is_newer, trim_logs};
 
     fn names(dir: &std::path::Path) -> Vec<String> {
         let mut v: Vec<String> = std::fs::read_dir(dir).unwrap().flatten().map(|e| e.file_name().into_string().unwrap()).collect();
@@ -424,5 +491,16 @@ mod tests {
         trim_logs(&dir, 10, 15);
         assert_eq!(names(&dir), ["gsi-104.jsonl", "keep", "notes.txt"]);
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn newer_versions() {
+        assert!(is_newer("v0.2.0", "0.1.0"));
+        assert!(is_newer("v0.10.0", "0.9.3"));
+        assert!(is_newer("v1.0.0", "0.9.9"));
+        assert!(!is_newer("v0.1.0", "0.1.0"));
+        assert!(!is_newer("v0.1.0", "0.2.0"));
+        assert!(!is_newer("v0.3.0-beta", "0.2.0"));
+        assert!(!is_newer("", "0.1.0"));
     }
 }

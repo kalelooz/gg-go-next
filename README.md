@@ -31,9 +31,11 @@ Press **Ctrl+Shift+D** in game to open Customize. The tray icon has the draft he
 ## Privacy
 
 - No account, no login, no server of ours. Everything runs on your PC.
-- Two online services, nothing else:
+- Three online services, nothing else:
   - **STRATZ**, with your own free token, for the draft numbers and the in-game hints.
   - **Valve's image server**, for item and hero pictures.
+  - **GitHub**, asked once at start whether a newer version is out. Turn off "Check for updates" in Customize to
+    skip it.
 - Your settings and STRATZ token stay in `%APPDATA%\com.kalelooz.gggonext`.
 - Game-feed logs are off. Turn on "Save game-feed logs" in Customize only if you want to send a bug report.
 
@@ -50,6 +52,10 @@ Press **Ctrl+Shift+D** in game to open Customize. The tray icon has the draft he
    draft helper window.
 
 The exe isn't code-signed, so Windows may show a SmartScreen warning. Pick "More info", then "Run anyway".
+
+**Updates:** when a new version is out, the tray menu and Customize show it with a Download button. Nothing installs
+by itself: download the new exe and replace the old one. To get an email instead, click **Watch**, then **Custom**,
+then **Releases** at the top of this page.
 
 **Uninstall:** delete the exe, the `.cfg` file from step 2, and the `com.kalelooz.gggonext` folders in
 `%APPDATA%` and `%LOCALAPPDATA%`.

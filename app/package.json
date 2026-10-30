@@ -2,7 +2,7 @@
   "name": "gg-go-next",
   "private": true,
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "scripts": {
     "tauri": "tauri",
     "test": "node src/timers.test.mjs && node src/items.test.mjs && node src/matchups.test.mjs && node src/picks.test.mjs && node src/roles.test.mjs && node src/search.test.mjs && node src/voice.test.mjs && node src/advice.test.mjs && node src/skills.test.mjs && node src/neutral.test.mjs && node src/farm.test.mjs && node src/reminders.test.mjs"

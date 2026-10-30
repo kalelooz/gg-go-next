@@ -38,6 +38,10 @@ jobs:
         working-directory: app
         run: npm test
 
+      - name: Rust tests
+        working-directory: app/src-tauri
+        run: cargo test
+
       - name: Build
         working-directory: app
         run: npx tauri build --no-bundle

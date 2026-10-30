@@ -65,6 +65,12 @@ select{font:inherit;color:var(--ink);background:var(--well);border:1px solid var
 .stage iframe{position:absolute;right:0;top:0;width:440px;height:520px;border:0;background:transparent;color-scheme:normal}
 .cap{color:var(--label);font-size:13px;margin:0}
 .cap b{color:var(--ink);font-weight:600}
+/* shown only when GitHub has a newer version */
+#update{display:flex;align-items:center;gap:12px;padding:8px 14px;background:var(--well);border-bottom:1px solid var(--gold)}
+#update[hidden]{display:none}
+#update span{flex:1}
+#update b{color:var(--hi);font-weight:600}
+#update button{font:inherit;font-weight:600;color:var(--bg1);background:var(--gold);border:0;border-radius:3px;padding:5px 14px;cursor:pointer}
 </style>
 </head>
 <body>
@@ -73,6 +79,10 @@ select{font:inherit;color:var(--ink);background:var(--well);border:1px solid var
   <span class="key" data-tauri-drag-region>Ctrl+Shift+D opens and closes this, in game too</span>
   <button class="x" id="close" type="button" aria-label="Close">×</button>
 </header>
+<div id="update" role="status" hidden>
+  <span>GG Go Next <b id="updateVersion"></b> is out.</span>
+  <button id="getUpdate" type="button">Download</button>
+</div>
 <main>
   <div id="list"></div>
   <aside id="preview">
@@ -119,6 +129,9 @@ const GROUPS = [
   ]],
   ['Voice', [
     ['voice', 'Voice alerts', 'Turns every call off at once. Which ones talk is set per role above.'],
+  ]],
+  ['Updates', [
+    ['check_updates', 'Check for updates', 'Asks GitHub once at start whether a newer version is out. Nothing downloads or installs by itself.'],
   ]],
   ['Bug reports', [
     ['save_logs', 'Save game-feed logs', 'Keeps a copy of what Dota sends in a logs folder next to the app, to help fix bugs. Applies on the next start.', false],
@@ -206,6 +219,16 @@ demo.addEventListener('load', () => setTimeout(() => {
 
 const hide = () => win.hide();
 document.getElementById('close').onclick = hide;
+
+// update banner: filled from the check main.rs runs at start
+const showUpdate = v => {
+  if (!v) return;
+  document.getElementById('updateVersion').textContent = v;
+  document.getElementById('update').hidden = false;
+};
+document.getElementById('getUpdate').onclick = () => invoke('open_releases');
+invoke('get_update').then(showUpdate).catch(() => {});
+window.__TAURI__.event.listen('update', e => showUpdate(e.payload));
 addEventListener('keydown', e => { if (e.key === 'Escape') hide(); });
 </script>
 </body>
