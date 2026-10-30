@@ -206,6 +206,56 @@ fn open_feedback(app: AppHandle, kind: String) {
     open_feedback_form(&kind, &app.package_info().version.to_string());
 }
 
+// One-click Dota setup: find Dota through Steam and write the GSI file there. That file is all Valve asks for;
+// the -gamestateintegration launch option stays a manual step in Steam.
+const GSI_CFG: &str = include_str!("../../../docs/gamestate_integration_gggonext.cfg");
+const GSI_FILE: &str = "gamestate_integration_gggonext.cfg";
+
+// The "path" lines of Steam's libraryfolders.vdf, e.g.  "path"		"D:\\SteamLibrary"
+fn library_paths(vdf: &str) -> Vec<PathBuf> {
+    vdf.lines()
+        .filter_map(|l| {
+            let mut parts = l.split('"').filter(|p| !p.trim().is_empty());
+            if parts.next()? != "path" {
+                return None;
+            }
+            Some(PathBuf::from(parts.next()?.replace("\\\\", "\\")))
+        })
+        .collect()
+}
+
+fn gsi_dir() -> Result<PathBuf, String> {
+    let steam: String = winreg::RegKey::predef(winreg::enums::HKEY_CURRENT_USER)
+        .open_subkey(r"Software\Valve\Steam")
+        .and_then(|k| k.get_value("SteamPath"))
+        .map_err(|_| "Steam isn't installed on this PC, or hasn't been started yet.".to_string())?;
+    let steam = PathBuf::from(steam);
+    let vdf = std::fs::read_to_string(steam.join(r"steamapps\libraryfolders.vdf")).unwrap_or_default();
+    std::iter::once(steam)
+        .chain(library_paths(&vdf))
+        .map(|lib| lib.join(r"steamapps\common\dota 2 beta\game\dota"))
+        .find(|d| d.is_dir())
+        .map(|d| d.join(r"cfg\gamestate_integration"))
+        .ok_or_else(|| "Dota 2 isn't in any of your Steam library folders.".to_string())
+}
+
+// true when the file is in place with this version's contents; line endings don't count, for hand-copied files
+fn gsi_ready(dir: &std::path::Path) -> bool {
+    std::fs::read_to_string(dir.join(GSI_FILE)).is_ok_and(|s| s.replace("\r\n", "\n") == GSI_CFG.replace("\r\n", "\n"))
+}
+
+// From Customize: install=false only checks. Err is a sentence to show as it is.
+#[tauri::command]
+fn dota_setup(install: bool) -> Result<bool, String> {
+    let dir = gsi_dir()?;
+    if install {
+        create_dir_all(&dir)
+            .and_then(|_| std::fs::write(dir.join(GSI_FILE), GSI_CFG))
+            .map_err(|e| format!("Couldn't write the file into Dota's folder: {e}"))?;
+    }
+    Ok(gsi_ready(&dir))
+}
+
 #[tauri::command]
 fn get_update(state: tauri::State<Update>) -> Option<String> {
     state.0.lock().unwrap().clone()
@@ -275,7 +325,7 @@ fn main() {
                 })
                 .build(),
         )
-        .invoke_handler(tauri::generate_handler![stratz, load_token, save_token, get_settings, set_setting, get_update, open_releases, whats_new, open_feedback])
+        .invoke_handler(tauri::generate_handler![stratz, load_token, save_token, get_settings, set_setting, get_update, open_releases, whats_new, open_feedback, dota_setup])
         .setup(|app| {
             let saved = load_settings(app.handle());
             // another app may already own the combination; the tray item still works then
@@ -287,6 +337,15 @@ fn main() {
 
             // "What's new" opens once per version, only after an update: a fresh install has no settings yet,
             // while anyone who ran 0.2.0 or earlier has settings but no last_version
+            // A fresh install opens Customize when Dota isn't set up yet, since the app otherwise only sits in the tray
+            let fresh = saved.as_object().is_some_and(|o| o.is_empty());
+            if fresh && !gsi_dir().is_ok_and(|d| gsi_ready(&d)) {
+                if let Some(w) = app.get_webview_window("settings") {
+                    let _ = w.show();
+                    let _ = w.set_focus();
+                }
+            }
+
             let current = app.package_info().version.to_string();
             let last = saved["last_version"].as_str().map(str::to_string);
             let updated = match &last {
@@ -542,7 +601,30 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::{changes_for, is_newer, trim_logs, CHANGELOG};
+    use super::{changes_for, is_newer, library_paths, trim_logs, CHANGELOG};
+    use std::path::PathBuf;
+
+    #[test]
+    fn steam_library_paths() {
+        let vdf = r#""libraryfolders"
+{
+	"0"
+	{
+		"path"		"C:\\Program Files (x86)\\Steam"
+		"label"		""
+		"apps"
+		{
+			"570"		"40000000000"
+		}
+	}
+	"1"
+	{
+		"path"		"D:\\SteamLibrary"
+	}
+}"#;
+        assert_eq!(library_paths(vdf), [PathBuf::from(r"C:\Program Files (x86)\Steam"), PathBuf::from(r"D:\SteamLibrary")]);
+        assert!(library_paths("").is_empty());
+    }
 
     fn names(dir: &std::path::Path) -> Vec<String> {
         let mut v: Vec<String> = std::fs::read_dir(dir).unwrap().flatten().map(|e| e.file_name().into_string().unwrap()).collect();

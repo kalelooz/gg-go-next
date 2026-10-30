@@ -44,11 +44,14 @@ Press **Ctrl+Shift+D** in game to open Customize. The tray icon has the draft he
 1. Download `GG-Go-Next-setup.exe` from [Releases](../../releases) and run it. The release notes list its SHA-256;
    in PowerShell, `Get-FileHash GG-Go-Next-setup.exe` should print the same value. If you'd rather not install
    anything, `GG-Go-Next.exe` on the same page runs as it is.
-2. Copy [docs/gamestate_integration_gggonext.cfg](docs/gamestate_integration_gggonext.cfg) into
-   `Steam\steamapps\common\dota 2 beta\game\dota\cfg\gamestate_integration\` (create the last folder if it's missing).
-3. In Steam, right-click Dota 2, then Properties, and add `-gamestateintegration` to Launch Options.
-4. In Dota's video settings, pick **Borderless Window**, so the overlay can sit on top of the game.
-5. Start GG Go Next from the Start menu. It lives in the tray.
+2. Start GG Go Next from the Start menu. It lives in the tray, and the first time it opens Customize.
+3. In Customize, click **Set up Dota**. It finds Dota through Steam and puts
+   [gamestate_integration_gggonext.cfg](docs/gamestate_integration_gggonext.cfg) in Dota's folder. If it can't find
+   Dota, copy that file by hand into `Steam\steamapps\common\dota 2 beta\game\dota\cfg\gamestate_integration\`
+   (create the last folder if it's missing).
+4. In Steam, right-click Dota 2, then Properties, and add `-gamestateintegration` to Launch Options. Customize shows
+   "Dota is connected" once this works.
+5. In Dota's video settings, pick **Borderless Window**, so the overlay can sit on top of the game.
 6. For the draft helper and hints, get a token at [stratz.com/api](https://stratz.com/api) and paste it into the
    draft helper window.
 
@@ -59,7 +62,7 @@ by itself: download the new setup and run it, and it updates in place with your 
 "What's new" window lists the changes once; every version is in [CHANGELOG.md](CHANGELOG.md). To get an email
 instead, click **Watch**, then **Custom**, then **Releases** at the top of this page.
 
-**Uninstall:** remove GG Go Next in Windows Settings, then Apps, and delete the `.cfg` file from step 2. Without the
+**Uninstall:** remove GG Go Next in Windows Settings, then Apps, and delete the `.cfg` file from step 3. Without the
 installer, delete the exe and the `com.kalelooz.gggonext` folders in `%APPDATA%` and `%LOCALAPPDATA%`.
 
 ## Build it yourself

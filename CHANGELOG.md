@@ -3,6 +3,10 @@
 Every version of GG Go Next. The app shows the newest section in its "What's new" window after an update, and each
 GitHub release uses the same text, so keep every change on one line that starts with `- `.
 
+## 0.4.0
+
+- **One-click Dota setup.** Customize has a "Set up Dota" button that finds Dota through Steam and puts the game-data file in its folder, so nobody has to copy it by hand. A line under it turns green once Dota is connected. On a fresh install, Customize opens by itself until this is done.
+
 ## 0.3.0
 
 - **Installer.** GG Go Next now comes as a normal Windows setup file, with a Start menu entry and an uninstaller in Windows settings. No admin rights needed. A single exe without setup is still on each release page.
