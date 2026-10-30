@@ -1,4 +1,5 @@
 // Generated from odota/dotaconstants build/heroes.json (MIT). Regenerate when a hero is added.
+// Used by search.js (and through it draft.html) and index.html.
 export const HEROES = [{"id":102,"name":"Abaddon","key":"abaddon","roles":["Support","Carry","Durable"],"img":"https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/abaddon.png"},
 {"id":73,"name":"Alchemist","key":"alchemist","roles":["Carry","Support","Durable","Disabler","Initiator","Nuker"],"img":"https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/alchemist.png"},
 {"id":68,"name":"Ancient Apparition","key":"ancient_apparition","roles":["Support","Disabler","Nuker"],"img":"https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/ancient_apparition.png"},

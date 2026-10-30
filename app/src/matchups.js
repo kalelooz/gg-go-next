@@ -2,6 +2,7 @@
 // enemies: Set of npc hero names we know are on the other team (draft popup entries, minimap sightings)
 // owned: Set of our item names ("item_bkb"...). buys(item): our hero and role finish that item often
 // enough to count (from STRATZ). Strongest rules first, so the panel can show just the top ones.
+// Used by index.html.
 import { RULES } from './matchup-rules.js';
 
 const SURE = { strong: 0, good: 1 };

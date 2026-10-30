@@ -1,5 +1,6 @@
 // Short advice lines from our own hero's state.
 // Each rule returns one sentence or null. Matchup items (sentries, Vessel) live in matchup-rules.js instead.
+// Used by index.html.
 
 // Average cumulative deaths by minute in STRATZ pub games
 // shortcut: one curve per role, not per hero; query STRATZ per hero if these feel off for some heroes

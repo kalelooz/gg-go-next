@@ -1,5 +1,6 @@
 // What players on your hero finish around this minute, from STRATZ heroStats.itemFullPurchase.
 // Rows are { itemId, time (minute it was finished), matchCount, winCount }, one per item per minute.
+// Used by index.html's items panel, which fetches the rows from STRATZ through main.rs.
 export const WINDOW = 5;
 
 // skip: item ids to leave out (ones you already own, lotus pickups)

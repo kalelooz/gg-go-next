@@ -1,3 +1,6 @@
+// Game-clock rules for the overlay (index.html) and kill streaks for topbar.html: runes, stacks, Roshan, Tormentor,
+// glyphs, day and night, TP, buyback, courier and wards. Pure functions, tested in timers.test.mjs.
+
 // Spawn schedules in game-clock seconds, from Valve's patch notes (patch 7.41f)
 export const SCHEDULES = {
   power: { label: 'Power rune', start: 360, every: 120 },

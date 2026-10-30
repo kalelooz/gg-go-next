@@ -1,4 +1,5 @@
 // Level-up hints: which ability to put the free point in, and which talent most players take.
+// Used by index.html, which sends the result to skillbar.html to draw over Dota's ability buttons.
 
 // Since 7.40 talents have their own points; one ability point per level up to 22
 const TALENT_AT = [10, 15, 20, 25, 27, 28, 29, 30];

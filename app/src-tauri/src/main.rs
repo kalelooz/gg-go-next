@@ -1,3 +1,5 @@
+// GG Go Next's Rust side: the game-feed listener on 127.0.0.1:3101, tray menu, window placement, settings.json,
+// and the commands the HTML windows in app/src call (STRATZ, updates, Dota setup, bug reports).
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use serde_json::{json, Value};

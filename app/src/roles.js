@@ -1,4 +1,4 @@
-// What each role sees and hears. Positions 1-5.
+// What each role sees and hears. Positions 1-5. Used by index.html (the overlay) and settings.html (Customize).
 export const ROLE_NAMES = { 1: 'Carry', 2: 'Mid', 3: 'Offlane', 4: 'Soft support', 5: 'Hard support' };
 
 // One Show and one Voice switch per part per role, and the Customize window shows exactly these:

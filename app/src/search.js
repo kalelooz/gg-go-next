@@ -1,3 +1,4 @@
+// Instant hero search for the draft helper (draft.html): full names, initials, old internal names and ALIASES.
 import { HEROES } from './heroes.js';
 import { ALIASES } from './aliases.js';
 

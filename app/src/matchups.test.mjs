@@ -1,3 +1,4 @@
+// Tests for matchups.js. npm test runs every test file with plain node; a failed assert stops the run.
 import assert from 'node:assert/strict';
 import { matchupHints } from './matchups.js';
 import { RULES } from './matchup-rules.js';

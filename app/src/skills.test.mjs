@@ -1,3 +1,4 @@
+// Tests for skills.js. npm test runs every test file with plain node; a failed assert stops the run.
 import assert from 'node:assert/strict';
 import { freePoints, guideOrders, nextSkill, talentTip, talentPick, buttonSlots } from './skills.js';
 

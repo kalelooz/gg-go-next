@@ -1,3 +1,4 @@
+// Tests for timers.js. npm test runs every test file with plain node; a failed assert stops the run.
 import assert from 'node:assert/strict';
 import { SCHEDULES, untilNext, untilStack, fmt, roshan, pits, buildingLost, newGlyphs, glyphLoss, glyphUsed, glyphIn,
   dayNight, tpStatus, buybackStatus, newStreaks, applyKills, courierStatus, newWards, trackWards, wardsLeft, wardLine, DARK_MAP, NO_OBSERVERS, pickQuip, BUYBACK_SHORT } from './timers.js';

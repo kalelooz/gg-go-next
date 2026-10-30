@@ -1,3 +1,4 @@
+// Tests for picks.js. npm test runs every test file with plain node; a failed assert stops the run.
 import assert from 'node:assert/strict';
 import { suggest, myPool, rolePools, grade, teamShape, draftEdge, heroPositions, posShare, assignPositions, laneStats, laneScore, LANE_VS, LANE_PARTNER } from './picks.js';
 

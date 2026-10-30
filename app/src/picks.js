@@ -2,6 +2,7 @@
 // vsOf(enemyId) -> Map(candidateId -> candidate's win-rate advantage vs that enemy, in points)
 // withOf(allyId) -> Map(candidateId -> win-rate gain when paired with that ally, in points)
 // Either can return undefined while that hero's data is still loading.
+// Used by draft.html, which fetches the STRATZ numbers through main.rs.
 export const ALLY_WEIGHT = 0.5;
 
 export function suggest({ candidates, enemies, allies, taken, vsOf, withOf, limit = 5 }) {

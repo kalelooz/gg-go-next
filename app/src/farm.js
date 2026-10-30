@@ -1,5 +1,5 @@
 // Carry farming: when you're ready for ancients, when ancients near you are up, and the :51 ancient stack.
-// Carry farm order; camp spots and creep names from our own game logs (2026-10-26).
+// Carry farm order; camp spots and creep names from our own game logs (2026-10-26). Used by index.html.
 
 // Ancient creeps as the game feed's minimap names them; the flooded frog camp turns into these around 20:00
 export const ANCIENT = /^npc_dota_neutral_(black_dragon|black_drake|granite_golem|rock_golem|big_thunder_lizard|small_thunder_lizard|prowler_acolyte|prowler_shaman|ice_shaman|frostbitten_golem|ancient_frog|ancient_frog_mage)$/;

@@ -1,3 +1,4 @@
+// Tests for items.js. npm test runs every test file with plain node; a failed assert stops the run.
 import assert from 'node:assert/strict';
 import { itemsNow } from './items.js';
 

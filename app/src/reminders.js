@@ -2,6 +2,7 @@
 // Rune and Roshan calls don't go through this. The text stays on screen either way; only the voice is capped.
 // A line speaks as soon as it applies, then at most `max` times a game: again only after `every` game seconds,
 // or once `value` (deaths) has grown by `step`. Lines with neither speak once.
+// Used by index.html.
 export const POLICY = {
   'tip-deaths': { max: 3, step: 3 },
   'tip-buyback': { max: 2, every: 600 },

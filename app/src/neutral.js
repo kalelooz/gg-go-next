@@ -1,5 +1,6 @@
 // Neutral item helper: which artifact and enchantment pros craft for your hero, role and tier, and a nudge when
 // you're a tier behind. Rules and timings from Valve's 7.38-7.41f patch notes and pro games.
+// Used by index.html.
 import { ATTR, NAMES, PICKS, ENC } from './neutrals.js';
 
 // game-clock minute each tier opens, Tier 1 to 5 (7.41), and its Madstone cost
