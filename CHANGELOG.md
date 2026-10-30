@@ -7,6 +7,7 @@ GitHub release uses the same text, so keep every change on one line that starts 
 
 - **Installer.** GG Go Next now comes as a normal Windows setup file, with a Start menu entry and an uninstaller in Windows settings. No admin rights needed. A single exe without setup is still on each release page.
 - **What's new.** After an update, this window shows what changed, once.
+- **Report a problem or idea.** A button at the top of Customize, and a tray menu item, open a short form for a bug, an idea or a question. Your app version is filled in for you.
 
 ## 0.2.0
 

@@ -1,0 +1,33 @@
+name: I have an idea
+description: Something new the app could do, or a way to make it better.
+title: "Idea: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What's your idea?
+      placeholder: "Example: a call when the enemy carry buys BKB."
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: How would it help your games?
+      placeholder: "Example: I'd know when to stop diving him."
+  - type: dropdown
+    id: role
+    attributes:
+      label: Which role do you mostly play?
+      options:
+        - Carry (1)
+        - Mid (2)
+        - Offlane (3)
+        - Soft support (4)
+        - Hard support (5)
+        - All of them
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Filled in for you when you come from the app.

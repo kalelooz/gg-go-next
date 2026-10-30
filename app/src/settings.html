@@ -65,6 +65,14 @@ select{font:inherit;color:var(--ink);background:var(--well);border:1px solid var
 .stage iframe{position:absolute;right:0;top:0;width:440px;height:520px;border:0;background:transparent;color-scheme:normal}
 .cap{color:var(--label);font-size:13px;margin:0}
 .cap b{color:var(--ink);font-weight:600}
+/* "Report a problem or idea": a header button that opens three choices, each a GitHub form */
+.fb{font:inherit;font-size:13px;font-weight:600;color:var(--ink);background:var(--well);border:1px solid var(--line);border-radius:3px;padding:5px 12px;cursor:pointer}
+.fb:hover,.fb[aria-expanded=true]{border-color:var(--gold);color:var(--hi)}
+#fbmenu{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;background:var(--well);border-bottom:1px solid var(--line)}
+#fbmenu[hidden]{display:none}
+#fbmenu p{flex-basis:100%;margin:0 0 2px;color:var(--label);font-size:13px}
+#fbmenu button{font:inherit;font-weight:600;color:var(--ink);background:none;border:1px solid var(--line);border-radius:3px;padding:6px 14px;cursor:pointer}
+#fbmenu button:hover{border-color:var(--gold);color:var(--hi)}
 /* shown only when GitHub has a newer version */
 #update{display:flex;align-items:center;gap:12px;padding:8px 14px;background:var(--well);border-bottom:1px solid var(--gold)}
 #update[hidden]{display:none}
@@ -77,8 +85,15 @@ select{font:inherit;color:var(--ink);background:var(--well);border:1px solid var
 <header data-tauri-drag-region>
   <h1 data-tauri-drag-region>Customize overlay</h1>
   <span class="key" data-tauri-drag-region>Ctrl+Shift+D opens and closes this, in game too</span>
+  <button class="fb" id="feedback" type="button" aria-expanded="false" aria-controls="fbmenu">Report a problem or idea</button>
   <button class="x" id="close" type="button" aria-label="Close">×</button>
 </header>
+<div id="fbmenu" hidden>
+  <p>Each one opens a short form on GitHub, with your app version already filled in. You need a free GitHub account to send it.</p>
+  <button type="button" data-kind="bug">Something isn't working</button>
+  <button type="button" data-kind="idea">I have an idea</button>
+  <button type="button" data-kind="question">I have a question</button>
+</div>
 <div id="update" role="status" hidden>
   <span>GG Go Next <b id="updateVersion"></b> is out.</span>
   <button id="getUpdate" type="button">Download</button>
@@ -219,6 +234,17 @@ demo.addEventListener('load', () => setTimeout(() => {
 
 const hide = () => win.hide();
 document.getElementById('close').onclick = hide;
+
+// feedback choices: each button opens its GitHub issue form (main.rs only knows these three)
+const fbButton = document.getElementById('feedback'), fbMenu = document.getElementById('fbmenu');
+const showFeedback = open => { fbMenu.hidden = !open; fbButton.setAttribute('aria-expanded', open); };
+fbButton.onclick = () => showFeedback(fbMenu.hidden);
+fbMenu.onclick = e => {
+  const kind = e.target.closest('button')?.dataset.kind;
+  if (kind) { invoke('open_feedback', { kind }); showFeedback(false); }
+};
+// Escape closes this panel first; a second Escape closes the window
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !fbMenu.hidden) { showFeedback(false); e.stopPropagation(); } });
 
 // update banner: filled from the check main.rs runs at start
 const showUpdate = v => {

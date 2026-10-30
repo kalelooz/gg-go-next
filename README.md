@@ -97,9 +97,10 @@ can promise anything, but it does nothing Valve's anti-cheat looks for.
 Yes. kalelooz plays Dota, designs the features, tests them in real games and decides what goes in. The code is
 written with Claude Code.
 
-**Something's wrong in game.**
-Open an issue. If you can, turn on "Save game-feed logs", reproduce it, and attach the newest file from the
-`logs` folder next to the exe.
+**Something's wrong, or I have an idea.**
+Click **Report a problem or idea** at the top of Customize (or in the tray menu) and pick bug, idea or question.
+It opens a short form here on GitHub with your app version filled in; you need a free GitHub account. You can also
+start from [New issue](../../issues/new/choose).
 
 ## Support
 

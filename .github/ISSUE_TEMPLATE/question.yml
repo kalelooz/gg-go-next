@@ -1,0 +1,17 @@
+name: I have a question
+description: Not sure how something works, or how to set it up.
+title: "Question: "
+labels: [question]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: What would you like to know?
+      placeholder: "Example: how do I get the draft helper to show numbers?"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Filled in for you when you come from the app.

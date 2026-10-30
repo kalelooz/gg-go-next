@@ -1,0 +1,57 @@
+name: Something isn't working
+description: A timer, voice call, hint, the draft helper or anything else did the wrong thing.
+title: "Bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for telling us. Plain words are fine, nothing technical needed.
+  - type: textarea
+    id: what
+    attributes:
+      label: What went wrong?
+      placeholder: "Example: the bounty rune call came a minute late."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect instead?
+      placeholder: "Example: the call 20 seconds before 4:00."
+  - type: dropdown
+    id: part
+    attributes:
+      label: Which part of the app?
+      options:
+        - Timers (runes, Roshan, Tormentor, glyph, wards)
+        - Voice calls
+        - Item, skill or neutral item hints
+        - Draft helper
+        - Customize window
+        - Installing or starting the app
+        - Something else
+    validations:
+      required: true
+  - type: dropdown
+    id: role
+    attributes:
+      label: Which role were you playing?
+      options:
+        - Carry (1)
+        - Mid (2)
+        - Offlane (3)
+        - Soft support (4)
+        - Hard support (5)
+        - Not in a game
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      description: Filled in for you when you come from the app. Otherwise, hover over the GG Go Next tray icon.
+  - type: textarea
+    id: files
+    attributes:
+      label: Screenshots or logs (optional)
+      description: >-
+        Drag pictures or files into this box. For logs: turn on "Save game-feed logs" in Customize, restart the app,
+        play until it happens again, then attach the newest file from the logs folder next to the app.

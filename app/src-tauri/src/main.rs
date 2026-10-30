@@ -186,6 +186,26 @@ fn whats_new(app: AppHandle) -> (String, Vec<String>) {
     (version, changes)
 }
 
+// "Report a problem or idea" opens one of the GitHub issue forms in .github/ISSUE_TEMPLATE with the version
+// filled in. Only these three kinds exist, so a webview can't send the browser anywhere else.
+const FEEDBACK: [(&str, &str, &str); 3] = [
+    ("bug", "bug.yml", "Something isn't working"),
+    ("idea", "feature.yml", "I have an idea"),
+    ("question", "question.yml", "I have a question"),
+];
+
+fn open_feedback_form(kind: &str, version: &str) {
+    if let Some((_, form, _)) = FEEDBACK.iter().find(|(k, _, _)| *k == kind) {
+        let url = format!("https://github.com/kalelooz/gg-go-next/issues/new?template={form}&version={version}");
+        let _ = std::process::Command::new("explorer").arg(url).spawn();
+    }
+}
+
+#[tauri::command]
+fn open_feedback(app: AppHandle, kind: String) {
+    open_feedback_form(&kind, &app.package_info().version.to_string());
+}
+
 #[tauri::command]
 fn get_update(state: tauri::State<Update>) -> Option<String> {
     state.0.lock().unwrap().clone()
@@ -255,7 +275,7 @@ fn main() {
                 })
                 .build(),
         )
-        .invoke_handler(tauri::generate_handler![stratz, load_token, save_token, get_settings, set_setting, get_update, open_releases, whats_new])
+        .invoke_handler(tauri::generate_handler![stratz, load_token, save_token, get_settings, set_setting, get_update, open_releases, whats_new, open_feedback])
         .setup(|app| {
             let saved = load_settings(app.handle());
             // another app may already own the combination; the tray item still works then
@@ -389,6 +409,12 @@ fn main() {
             let refs: Vec<&dyn IsMenuItem<_>> = role_items.iter().map(|i| i as &dyn IsMenuItem<_>).collect();
             menu.append(&Submenu::with_items(app, "Role", true, &refs)?)?;
             menu.append(&PredefinedMenuItem::separator(app)?)?;
+            let feedback_items = FEEDBACK
+                .iter()
+                .map(|(k, _, label)| MenuItem::with_id(app, format!("feedback:{k}"), *label, true, None::<&str>))
+                .collect::<Result<Vec<_>, _>>()?;
+            let refs: Vec<&dyn IsMenuItem<_>> = feedback_items.iter().map(|i| i as &dyn IsMenuItem<_>).collect();
+            menu.append(&Submenu::with_items(app, "Report a problem or idea", true, &refs)?)?;
             menu.append(&MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?)?;
 
             app.manage(TrayMenu(menu.clone()));
@@ -416,7 +442,8 @@ fn main() {
             let tray_menu = menu.clone();
             TrayIconBuilder::new()
                 .icon(app.default_window_icon().unwrap().clone())
-                .tooltip("GG Go Next")
+                // the version shows on hover, which the bug form points people to
+                .tooltip(format!("GG Go Next {}", app.package_info().version))
                 .menu(&menu)
                 .on_menu_event(move |app, ev| {
                     let id = ev.id().as_ref();
@@ -426,6 +453,10 @@ fn main() {
                     }
                     if id == "update" {
                         open_releases_page();
+                        return;
+                    }
+                    if let Some(kind) = id.strip_prefix("feedback:") {
+                        open_feedback_form(kind, &app.package_info().version.to_string());
                         return;
                     }
                     if id == "draft" || id == "settings" {

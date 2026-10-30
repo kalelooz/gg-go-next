@@ -1,0 +1,2 @@
+# Only the three forms: no blank issue page, which is confusing if you've never used GitHub
+blank_issues_enabled: false
