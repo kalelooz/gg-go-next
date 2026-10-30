@@ -28,7 +28,7 @@ fn toggle_settings(app: &AppHandle) {
 // Must match the uri in Dota's gamestate_integration_gggonext.cfg
 const GSI_ADDR: &str = "127.0.0.1:3101";
 
-// Raw game-feed logs: one file per app run. Oldest go first past either limit; logs/keep/ is never touched.
+// Raw game-feed logs (opt-in): one file per app run. Oldest go first past either limit; logs/keep/ is never touched.
 const KEEP_LOGS: usize = 10;
 const KEEP_LOG_BYTES: u64 = 300 * 1024 * 1024;
 
@@ -359,12 +359,17 @@ fn main() {
                 })
                 .build(app)?;
 
-            // shortcut: every payload is logged raw so we can see what Valve actually sends; remove or cap before selling
-            let logs = std::env::current_exe()?.parent().unwrap().join("logs");
-            create_dir_all(&logs)?;
-            trim_logs(&logs, KEEP_LOGS, KEEP_LOG_BYTES);
-            let secs = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
-            let log_path = logs.join(format!("gsi-{secs}.jsonl"));
+            // Raw logs show exactly what Valve sends, for fixing bugs. Off unless "Save game-feed logs" is ticked
+            // in Customize; read once here, so a change applies on the next start.
+            let log_path = if saved["toggles"]["save_logs"].as_bool() == Some(true) {
+                let logs = std::env::current_exe()?.parent().unwrap().join("logs");
+                create_dir_all(&logs)?;
+                trim_logs(&logs, KEEP_LOGS, KEEP_LOG_BYTES);
+                let secs = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_secs();
+                Some(logs.join(format!("gsi-{secs}.jsonl")))
+            } else {
+                None
+            };
 
             let handle = app.handle().clone();
             std::thread::spawn(move || {
@@ -375,7 +380,7 @@ fn main() {
                         return;
                     }
                 };
-                let mut log = OpenOptions::new().create(true).append(true).open(&log_path).ok();
+                let mut log = log_path.and_then(|p| OpenOptions::new().create(true).append(true).open(p).ok());
                 for mut req in server.incoming_requests() {
                     let mut body = String::new();
                     let _ = req.as_reader().read_to_string(&mut body);

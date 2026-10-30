@@ -1,0 +1,64 @@
+# Builds the exe on GitHub's own Windows machines, so anyone can check that a release comes from this code.
+# Every push and pull request runs the tests and keeps the exe as a build artifact.
+# Pushing a tag like v0.2.0 also publishes a release with the exe and its SHA-256.
+name: build
+
+on:
+  push:
+    branches: [master, main]
+    tags: ['v*']
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: app/src-tauri
+
+      - name: Install
+        working-directory: app
+        run: npm ci
+
+      - name: Test
+        working-directory: app
+        run: npm test
+
+      - name: Build
+        working-directory: app
+        run: npx tauri build --no-bundle
+
+      - name: Name the exe and hash it
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory dist | Out-Null
+          Copy-Item app/src-tauri/target/release/gg-go-next.exe "dist/GG Go Next.exe"
+          $hash = (Get-FileHash "dist/GG Go Next.exe" -Algorithm SHA256).Hash
+          "SHA-256 of GG Go Next.exe: ``$hash``" | Set-Content dist/SHA256.txt
+          Get-Content dist/SHA256.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gg-go-next
+          path: dist/
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/GG Go Next.exe
+          body_path: dist/SHA256.txt
