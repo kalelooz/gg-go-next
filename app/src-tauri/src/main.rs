@@ -11,11 +11,31 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::menu::{CheckMenuItem, IsMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager, WindowEvent};
-use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, ShortcutState};
 use tauri_plugin_updater::UpdaterExt;
 
 // Opens the Customize window over the game and closes it again, so nobody has to alt-tab to the tray
 const HOTKEY: &str = "ctrl+shift+d";
+// Hides and shows the overlay, since it sits over Dota's shop on the right
+const HIDE_KEY: &str = "ctrl+shift+s";
+
+// the tray's "Show overlay" tick, so the hotkey can keep it in step
+struct ShowItem(CheckMenuItem<tauri::Wry>);
+
+fn toggle_show(app: &AppHandle) {
+    let on = {
+        let state = app.state::<Settings>();
+        let mut s = state.0.lock().unwrap();
+        let on = !s["toggles"]["show"].as_bool().unwrap_or(true);
+        s["toggles"]["show"] = json!(on);
+        save_settings(app, &s);
+        on
+    };
+    if let Some(item) = app.try_state::<ShowItem>() {
+        let _ = item.0.set_checked(on);
+    }
+    let _ = app.emit("settings", ("show".to_string(), on));
+}
 
 fn toggle_settings(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("settings") {
@@ -379,7 +399,7 @@ fn save_token(app: tauri::AppHandle, token: String) -> Result<(), String> {
 // (id, label, on at start); the overlay's own defaults in index.html must match
 // Which runes, stacks and Roshan calls talk is set per role in Customize, so the tray only has the master switch
 const TOGGLES: [(&str, &str, bool); 2] = [
-    ("show", "Show timers", true),
+    ("show", "Show overlay   Ctrl+Shift+S", true),
     ("voice", "Voice alerts", true),
 ];
 
@@ -410,8 +430,13 @@ fn main() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
-                .with_handler(|app, _shortcut, event| {
-                    if event.state() == ShortcutState::Pressed {
+                .with_handler(|app, shortcut, event| {
+                    if event.state() != ShortcutState::Pressed {
+                        return;
+                    }
+                    if shortcut.matches(Modifiers::CONTROL | Modifiers::SHIFT, Code::KeyS) {
+                        toggle_show(app);
+                    } else {
                         toggle_settings(app);
                     }
                 })
@@ -421,8 +446,10 @@ fn main() {
         .setup(|app| {
             let saved = load_settings(app.handle());
             // another app may already own the combination; the tray item still works then
-            if let Err(e) = app.global_shortcut().register(HOTKEY) {
-                eprintln!("hotkey {HOTKEY} not available: {e}");
+            for key in [HOTKEY, HIDE_KEY] {
+                if let Err(e) = app.global_shortcut().register(key) {
+                    eprintln!("hotkey {key} not available: {e}");
+                }
             }
             app.manage(Settings(Mutex::new(saved.clone())));
             app.manage(Update(Mutex::new(None)));
@@ -542,7 +569,11 @@ fn main() {
             menu.append(&PredefinedMenuItem::separator(app)?)?;
             for (id, label, on) in TOGGLES {
                 let on = saved["toggles"][id].as_bool().unwrap_or(on);
-                menu.append(&CheckMenuItem::with_id(app, id, label, true, on, None::<&str>)?)?;
+                let item = CheckMenuItem::with_id(app, id, label, true, on, None::<&str>)?;
+                if id == "show" {
+                    app.manage(ShowItem(item.clone()));
+                }
+                menu.append(&item)?;
             }
             // one ticked voice at a time; ids are "voice:<folder>"
             let picked = saved["toggles"]["voice_pick"].as_str().unwrap_or(VOICES[0].0).to_string();
