@@ -153,9 +153,8 @@ fn save_token(app: tauri::AppHandle, token: String) -> Result<(), String> {
 
 // (id, label, on at start); the overlay's own defaults in index.html must match
 // Which runes, stacks and Roshan calls talk is set per role in Customize, so the tray only has the master switch
-const TOGGLES: [(&str, &str, bool); 3] = [
+const TOGGLES: [(&str, &str, bool); 2] = [
     ("show", "Show timers", true),
-    ("icons", "Icon view", false),
     ("voice", "Voice alerts", true),
 ];
 

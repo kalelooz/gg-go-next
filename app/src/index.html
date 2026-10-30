@@ -12,10 +12,8 @@ body{font-family:Bahnschrift,'Segoe UI',sans-serif;font-stretch:semi-condensed;c
    turn gold when due, so the eye only goes to what needs action now. */
 #hud{position:absolute;right:5vw;top:1.5vw;font-size:3.8vw;line-height:1.5;visibility:hidden}
 #hud.on{visibility:visible}
-/* label (or icon) on the left edge, time on the right edge: both columns stay lined up whatever the text length */
+/* label on the left edge, time on the right edge: both columns stay lined up whatever the text length */
 .row{display:flex;align-items:center;justify-content:space-between;gap:.6em;height:1.6em;white-space:nowrap;color:rgb(255 255 255 / .68)}
-/* icons stay a little brighter than the text so they read at a glance */
-.row .ic{opacity:.85}
 .row>span:first-child{display:flex;align-items:center;width:7em}
 /* min-width, not width: a long line (Roshan's respawn window) grows the row instead of running into the label */
 .row>span:last-child{min-width:9.5em;text-align:right;font-variant-numeric:tabular-nums}
@@ -24,7 +22,6 @@ body{font-family:Bahnschrift,'Segoe UI',sans-serif;font-stretch:semi-condensed;c
 .row.good{color:#4fd36b;font-weight:600}
 .row.dim{color:rgb(255 255 255 / .45)}
 .row.due{color:#FFD24A;font-weight:600}
-.row.due .ic{opacity:1}
 #err{position:absolute;right:5vw;bottom:2vw;font-size:3vw;color:#ff8a7a}
 
 /* always-on strip: day/night, TP, buyback. Green ready, grey cooldown, red missing.
@@ -34,7 +31,6 @@ body{font-family:Bahnschrift,'Segoe UI',sans-serif;font-stretch:semi-condensed;c
 #status>span>span{display:flex;align-items:center;gap:.4em}
 #status>span:empty{display:none}
 .ic{display:inline-flex;width:1.35em;height:1.35em;flex:none}
-.row .ic{width:1.5em;height:1.5em}
 /* game icons are cut-outs, so they get a drop shadow instead of a box to stay readable on any terrain */
 .ic img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 1px 1px #000) drop-shadow(0 0 2px #000)}
 .ic img.sq{object-fit:cover;border-radius:.18em;filter:none;box-shadow:0 0 0 1px #000c,0 1px 3px #000}
@@ -43,18 +39,10 @@ body{font-family:Bahnschrift,'Segoe UI',sans-serif;font-stretch:semi-condensed;c
 .bad .sq{box-shadow:0 0 0 .1em #ff6b6b,0 1px 3px #000}
 .off .sq{box-shadow:0 0 0 .1em #777,0 1px 3px #000}
 .bad img,.off img{filter:grayscale(1) brightness(.8)}
-/* text view shows the words, icon view shows Dota's icons; switched from the tray menu */
-.row .ic{display:none}
-.icons .row .ic{display:inline-flex}
-.icons .row .lbl{display:none}
-/* no Dota icon for this one, so it keeps its words in icon view */
-.icons .row.noicon .lbl{display:inline}
 /* role switched off for this part (Customize: fit the overlay to my role) */
 .roleoff{display:none!important}
 #roleline{font-size:.7em;text-align:right;color:rgb(255 255 255 / .55);margin:-.2em 0 .25em;white-space:nowrap;contain:inline-size;transition:color .4s}
 #roleline.fresh{color:#FFD24A}
-.icons .row>span:first-child{width:auto}
-.icons .row>span:last-child{min-width:7em}
 /* ward line: words in both views, spills left instead of widening the panel */
 #wards{display:flex;justify-content:unsafe flex-end;gap:.4em;margin-top:.35em;padding-top:.4em;border-top:1px solid rgb(255 255 255 / .18);
   font-size:.82em;white-space:nowrap;contain:inline-size;color:rgb(255 255 255 / .68)}
@@ -92,17 +80,17 @@ body{font-family:Bahnschrift,'Segoe UI',sans-serif;font-stretch:semi-condensed;c
 <div id="hud">
   <div id="status"><span id="dn"></span><span id="tp"></span><span id="bb"></span><span id="cr"></span></div>
   <div id="roleline"></div>
-  <div class="row noicon" id="water"><span><i class="ic"></i><b class="lbl">Water runes</b></span><span></span></div>
-  <div class="row" id="power"><span><i class="ic"></i><b class="lbl">Power rune</b></span><span></span></div>
-  <div class="row" id="bounty"><span><i class="ic"></i><b class="lbl">Bounty runes</b></span><span></span></div>
-  <div class="row" id="wisdom"><span><i class="ic"></i><b class="lbl">Wisdom shrines</b></span><span></span></div>
-  <div class="row" id="lotus"><span><i class="ic"></i><b class="lbl">Lotus pools</b></span><span></span></div>
-  <div class="row" id="stack"><span><i class="ic"></i><b class="lbl">Stack camps</b></span><span></span></div>
-  <div class="row" id="roshan"><span><i class="ic"></i><b class="lbl">Roshan</b></span><span></span></div>
-  <div class="row" id="aegis" hidden><span><i class="ic"></i><b class="lbl">Aegis</b></span><span></span></div>
-  <div class="row" id="tormentor"><span><i class="ic"></i><b class="lbl">Tormentor</b></span><span></span></div>
-  <div class="row" id="glyph_enemy"><span><i class="ic"></i><b class="lbl">Enemy glyph</b></span><span></span></div>
-  <div class="row" id="glyph_ours" hidden><span><i class="ic"></i><b class="lbl">Our glyph</b></span><span></span></div>
+  <div class="row" id="water"><span><b class="lbl">Water runes</b></span><span></span></div>
+  <div class="row" id="power"><span><b class="lbl">Power rune</b></span><span></span></div>
+  <div class="row" id="bounty"><span><b class="lbl">Bounty runes</b></span><span></span></div>
+  <div class="row" id="wisdom"><span><b class="lbl">Wisdom shrines</b></span><span></span></div>
+  <div class="row" id="lotus"><span><b class="lbl">Lotus pools</b></span><span></span></div>
+  <div class="row" id="stack"><span><b class="lbl">Stack camps</b></span><span></span></div>
+  <div class="row" id="roshan"><span><b class="lbl">Roshan</b></span><span></span></div>
+  <div class="row" id="aegis" hidden><span><b class="lbl">Aegis</b></span><span></span></div>
+  <div class="row" id="tormentor"><span><b class="lbl">Tormentor</b></span><span></span></div>
+  <div class="row" id="glyph_enemy"><span><b class="lbl">Enemy glyph</b></span><span></span></div>
+  <div class="row" id="glyph_ours" hidden><span><b class="lbl">Our glyph</b></span><span></span></div>
   <div id="wards" hidden></div>
   <div id="items" hidden></div>
 </div>
@@ -125,36 +113,22 @@ import { HEROES } from './heroes.js';
 const DEMO = new URLSearchParams(location.search).has('demo');
 const TAURI = DEMO ? (await import('./demo.js')).tauri : window.__TAURI__;
 
-// Rune, Roshan, glyph and day/night icons are our own drawings in icons/. Item, hero and ability art loads
-// from Valve's image server, like the draft helper's hero pictures, so the app ships no Valve files.
-// "sq" ones are square art; the rest have transparent backgrounds.
+// Timer rows are words only. The top strip's TP, buyback and Night Stalker pictures and the item pictures
+// load from Valve's image server, so the app ships no Valve files. "sq" ones are square art.
 const CDN = 'https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react';
 const img = (src, sq = false) => `<img src="${src}" alt=""${sq ? ' class="sq"' : ''}>`;
-const icon = name => img(`icons/${name}.svg`);
 const itemIcon = name => `${CDN}/items/${name}.png`;
 const ICON = {
-  power: icon('power'), bounty: icon('bounty'), wisdom: icon('wisdom'), lotus: icon('lotus'), stack: icon('stack'),
-  roshan: icon('roshan'), aegis: img(itemIcon('aegis'), true), tormentor: icon('tormentor'),
-  day: icon('day'), night: icon('night'), night_stalker: img(`${CDN}/heroes/icons/night_stalker.png`, true),
+  night_stalker: img(`${CDN}/heroes/icons/night_stalker.png`, true),
   tp: img(itemIcon('tpscroll'), true), buyback: img(`${CDN}/abilities/buyback.png`, true),
 };
-for (const [id, html] of Object.entries(ICON)) {
-  const slot = document.querySelector(`#${id} .ic`);
-  if (slot) slot.innerHTML = html;
-}
-// each glyph row shows that team's own glyph button, once we know which team we're on
-function glyphIcons() {
-  const enemy = myTeam === 'radiant' ? 'dire' : 'radiant';
-  document.querySelector('#glyph_enemy .ic').innerHTML = icon('glyph_' + enemy);
-  document.querySelector('#glyph_ours .ic').innerHTML = icon('glyph_' + (myTeam || 'radiant'));
-}
 
 const DUE = 15, MOVE_WARN = 30, RUNE_WARN = 20, STACK_WARN = 5;
 const SAY_NAME = { water: 'water runes', power: 'power rune', bounty: 'bounty', wisdom: 'wisdom', lotus: 'lotus' };
 const listOf = xs => (xs.length < 2 ? xs[0] : xs.slice(0, -1).join(', ') + ' and ' + xs.at(-1));
 const IN_GAME =['DOTA_GAMERULES_STATE_PRE_GAME', 'DOTA_GAMERULES_STATE_GAME_IN_PROGRESS'];
 // roleN_<part>_show / _voice switches come from Customize; missing ones use roles.js defaults
-const settings = { show: true, voice: !DEMO, icons: false, jokes: true, voice_pick: 'am_michael', role: 'auto' };
+const settings = { show: true, voice: !DEMO, jokes: true, voice_pick: 'am_michael', role: 'auto' };
 const spoken = new Set();
 const seenEvents = new Set();
 let map = null, gotAt = 0, matchId = null, roshanAt = null, aegisAt = null;
@@ -305,14 +279,14 @@ function tick() {
   setRow('glyph_ours', 'back in ' + fmt(ours), false);
 }
 
-// One chip: icon plus words. The strip keeps its words in icon view too, so it reads the same either way.
+// One chip: an optional picture plus words.
 const chip = (cls, icon, words) => `<span class="${cls}">${icon ? `<i class="ic">${ICON[icon]}</i>` : ''}${words}</span>`;
 
 function renderStatus(t) {
   const dn = dayNight(t, map.daytime, map.nightstalker_night);
   document.getElementById('dn').innerHTML = dn.forced
-    ? chip('', dn.by || (dn.day ? 'day' : 'night'), dn.by ? 'Night Stalker night' : dn.day ? 'Forced day' : 'Forced night')
-    : chip('', dn.day ? 'day' : 'night', `${dn.next === 'night' ? 'Night' : 'Day'} in ${fmt(dn.in)}`);
+    ? chip('', dn.by, dn.by ? 'Night Stalker night' : dn.day ? 'Forced day' : 'Forced night')
+    : chip('', null, `${dn.next === 'night' ? 'Night' : 'Day'} in ${fmt(dn.in)}`);
   const tp = tpStatus(me?.items?.teleport0);
   document.getElementById('tp').innerHTML = !me?.items ? ''
     : tp.state === 'ok' ? chip('ok', 'tp', 'TP ready')
@@ -584,7 +558,7 @@ listen('gsi', e => {
       matchId = d.map.matchid; roshanAt = aegisAt = null; glyphs = newGlyphs(); wards = newWards(); seenEvents.clear(); spoken.clear(); reminders = newReminders();
       lanes = []; lastStack = -Infinity; seenEnemies = new Set(); bestSkill = new Map(); readySince = null;
     }
-    if (d.player?.team_name && d.player.team_name !== myTeam) { myTeam = d.player.team_name; glyphIcons(); }
+    if (d.player?.team_name && d.player.team_name !== myTeam) { myTeam = d.player.team_name; }
     if (d.hero) me = { hero: d.hero, items: d.items, gold: d.player?.gold, deaths: d.player?.deaths, abilities: d.abilities };
     // highest level seen per ability: Tiny's Tree Grab leaves the feed while he holds a tree
     for (const a of Object.values(d.abilities || {})) if (a?.name) bestSkill.set(a.name, Math.max(bestSkill.get(a.name) || 0, a.level || 0));
@@ -643,7 +617,6 @@ function applySetting(id, on, animate = false) {
     return;
   }
   settings[id] = on;
-  if (id === 'icons') document.body.classList.toggle('icons', on);
   if (id.startsWith('el_')) showPart(id.slice(3), on, animate);
   if (id === 'role') updateRole();
 }
