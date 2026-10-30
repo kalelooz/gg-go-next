@@ -39,13 +39,13 @@ Press **Ctrl+Shift+D** in game to open Customize. The tray icon has the draft he
 
 ## Install
 
-1. Download `GG Go Next.exe` from [Releases](../../releases). The release notes list its SHA-256; in PowerShell,
-   `Get-FileHash "GG Go Next.exe"` should print the same value.
+1. Download `GG-Go-Next.exe` from [Releases](../../releases). The release notes list its SHA-256; in PowerShell,
+   `Get-FileHash GG-Go-Next.exe` should print the same value.
 2. Copy [docs/gamestate_integration_gggonext.cfg](docs/gamestate_integration_gggonext.cfg) into
    `Steam\steamapps\common\dota 2 beta\game\dota\cfg\gamestate_integration\` (create the last folder if it's missing).
 3. In Steam, right-click Dota 2, then Properties, and add `-gamestateintegration` to Launch Options.
 4. In Dota's video settings, pick **Borderless Window**, so the overlay can sit on top of the game.
-5. Start `GG Go Next.exe`. It lives in the tray.
+5. Start `GG-Go-Next.exe`. It lives in the tray.
 6. For the draft helper and hints, get a token at [stratz.com/api](https://stratz.com/api) and paste it into the
    draft helper window.
 
