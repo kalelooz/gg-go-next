@@ -56,7 +56,7 @@ The exe isn't code-signed, so Windows may show a SmartScreen warning. Pick "More
 
 ## Build it yourself
 
-Needs Node.js 20+ and Rust (stable).
+Needs Node.js 22 or newer and Rust (stable).
 
 ```
 cd app

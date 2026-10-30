@@ -16,11 +16,11 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
           cache-dependency-path: app/package-lock.json
 
@@ -51,14 +51,14 @@ jobs:
           "SHA-256 of GG-Go-Next.exe: ``$hash``" | Set-Content dist/SHA256.txt
           Get-Content dist/SHA256.txt
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: gg-go-next
           path: dist/
 
       - name: Publish release
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: dist/GG-Go-Next.exe
           body_path: dist/SHA256.txt
