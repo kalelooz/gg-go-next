@@ -1,0 +1,46 @@
+# Once a week, asks Valve's patch notes feed for the newest Dota patch and compares it with .github/dota-patch.txt,
+# the patch the app's timers and rules were last checked against. A newer patch opens one issue as a reminder.
+name: patch watch
+
+on:
+  schedule:
+    - cron: '17 6 * * 6'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Compare with Valve's newest patch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          known=$(tr -d '[:space:]' < .github/dota-patch.txt)
+          latest=$(curl -fsS --retry 3 'https://www.dota2.com/datafeed/patchnoteslist?language=english' \
+            | jq -r '.patches | max_by(.patch_timestamp) | .patch_number')
+          echo "Checked against $known, Valve's newest is $latest"
+          if [ -z "$latest" ] || [ "$latest" = null ] || [ "$latest" = "$known" ]; then exit 0; fi
+
+          # one issue per patch, even if the file isn't bumped for a while
+          title="Dota patch $latest is out"
+          if [ -n "$(gh issue list --state all --search "\"$title\" in:title" --json number --jq '.[].number')" ]; then
+            echo "Issue already exists"; exit 0
+          fi
+          cat > body.md <<BODY
+          Valve released patch $latest. The app was last checked against $known.
+
+          - Patch notes: https://www.dota2.com/patches/$latest
+          - Raw feed: https://www.dota2.com/datafeed/patchnotes?version=$latest&language=english
+
+          Check the parts that follow game rules: rune, lotus, wisdom shrine, Roshan and Tormentor timers, stacking and
+          neutral item tiers, items and abilities named in hints. Then set .github/dota-patch.txt to $latest and close
+          this issue.
+          BODY
+          gh label create patch --color FFCC33 --description "A new Dota patch to check against the app" --force
+          gh issue create --title "$title" --label patch --body-file body.md
