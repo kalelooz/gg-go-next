@@ -81,13 +81,24 @@ select{font:inherit;color:var(--ink);background:var(--well);border:1px solid var
 #update span{flex:1}
 #update b{color:var(--hi);font-weight:600}
 #update button{font:inherit;font-weight:600;color:var(--bg1);background:var(--gold);border:0;border-radius:3px;padding:5px 14px;cursor:pointer}
-/* Dota setup: the one file Dota needs, then the launch option and a live check */
-#setup{padding:4px 8px 6px}
-#setup p{margin:2px 0 8px;color:var(--label);font-size:13px}
-#setup code{font:13px Consolas,monospace;color:var(--hi);background:var(--well);padding:1px 5px;border-radius:3px;user-select:text}
-#setup button{font:inherit;font-weight:600;color:var(--bg1);background:var(--gold);border:0;border-radius:3px;padding:6px 16px;margin:0 0 10px;cursor:pointer}
-#setup button[hidden]{display:none}
-#setup .ok{color:var(--on)}
+/* Dota setup and the STRATZ token: short steps, one gold button, a line that turns green when it works */
+.steps{padding:4px 8px 6px}
+.steps p{margin:2px 0 8px;color:var(--label);font-size:13px}
+.steps p[hidden],.steps ol[hidden],.steps div[hidden]{display:none}
+.steps b{color:var(--ink);font-weight:600}
+.steps ol{margin:0 0 10px;padding-left:20px;color:var(--label);font-size:13px}
+.steps li{margin:2px 0}
+.steps code{font:13px Consolas,monospace;color:var(--hi);background:var(--well);padding:1px 5px;border-radius:3px;user-select:text}
+.steps button{font:inherit;font-weight:600;color:var(--bg1);background:var(--gold);border:0;border-radius:3px;padding:6px 16px;margin:0 0 10px;cursor:pointer}
+.steps button[hidden]{display:none}
+.steps button:disabled{opacity:.6;cursor:default}
+.steps button.plain{color:var(--ink);background:none;border:1px solid var(--line);padding:5px 14px}
+.steps button.plain:hover{border-color:var(--gold);color:var(--hi)}
+.steps .ok{color:var(--on)}
+.steps .err{color:#ff7a6b}
+:root[data-theme=light] .steps .err{color:#b3261e}
+.paste{display:flex;gap:8px}
+.paste input{flex:1;min-width:0;font:inherit;color:var(--ink);background:var(--well);border:1px solid var(--line);border-radius:3px;padding:5px 8px;user-select:text}
 </style>
 </head>
 <body>
@@ -193,11 +204,27 @@ const roleHtml = () => {
     <div class="th"><span></span><span>Show</span><span>Voice</span></div>${rows}`;
 };
 const render = () => {
-  list.innerHTML = `<h2>Dota setup</h2><div id="setup" aria-live="polite">
+  list.innerHTML = `<h2>Dota setup</h2><div id="setup" class="steps" aria-live="polite">
       <p id="gsiFile">Looking for Dota…</p>
       <button type="button" id="gsiInstall" hidden>Set up Dota</button>
       <p id="gsiLaunch">Then in Steam, right-click Dota 2, pick Properties, and add <code>-gamestateintegration</code> to Launch Options.</p>
       <p id="gsiLive">This line turns green once Dota starts with that option.</p>
+    </div><h2>STRATZ token</h2><div id="stratz" class="steps">
+      <p>The draft helper's counter picks and the item and skill hints in game use numbers from STRATZ, a free Dota stats site. Timers and voice calls work without it.</p>
+      <p id="stratzState" aria-live="polite"></p>
+      <button type="button" class="plain" id="stratzChange" hidden>Use a different token</button>
+      <div id="stratzForm" hidden>
+        <ol>
+          <li>Click <b>Open stratz.com/api</b> and log in with Steam.</li>
+          <li>Copy the long code under <b>Default Token</b>.</li>
+          <li>Paste it here and click <b>Save</b>.</li>
+        </ol>
+        <button type="button" id="stratzOpen">Open stratz.com/api</button>
+        <div class="paste">
+          <input id="stratzToken" type="password" placeholder="Paste your STRATZ token" aria-label="STRATZ token" autocomplete="off">
+          <button type="button" class="plain" id="stratzSave">Save</button>
+        </div>
+      </div>
     </div><h2>Your role</h2>${rolePick}<div id="perRole">${roleHtml()}</div>` + GROUPS.map(([name, opts]) => `<h2>${name}</h2>` + opts.map(([id, label, what, def]) =>
     `<label class="opt" data-id="${id}"><input type="checkbox" id="${id}" ${value(id, def) ? 'checked' : ''}><b>${label}</b><small>${what}</small></label>`).join('')).join('')
     + `<label class="opt" style="grid-template-columns:1fr"><b>Voice</b><select id="voice_pick">${VOICES.map(([v, l]) =>
@@ -280,6 +307,40 @@ window.__TAURI__.event.listen('gsi', () => {
   live.textContent = 'Dota is connected.';
   document.getElementById('gsiLaunch').hidden = true;
 });
+
+// STRATZ token: checked with one small query before it's saved, then shared with the draft helper
+const stratzState = document.getElementById('stratzState'), stratzForm = document.getElementById('stratzForm');
+const stratzChange = document.getElementById('stratzChange'), stratzInput = document.getElementById('stratzToken');
+const stratzSave = document.getElementById('stratzSave');
+const showStratz = (have, msg, kind = '') => {
+  stratzState.textContent = msg ?? (have ? 'Token saved. Counter picks and hints are on.' : 'No token yet. It takes about a minute:');
+  stratzState.className = kind || (have ? 'ok' : '');
+  stratzForm.hidden = have;
+  stratzChange.hidden = !have;
+};
+document.getElementById('stratzOpen').onclick = () => invoke('open_stratz');
+stratzChange.onclick = () => { showStratz(false, 'Paste the new token:'); stratzInput.focus(); };
+stratzSave.onclick = async () => {
+  // people sometimes copy the "Bearer " in front of it too
+  const t = stratzInput.value.trim().replace(/^bearer\s+/i, '');
+  if (!t) { showStratz(false, 'Paste the token first.', 'err'); return; }
+  stratzSave.disabled = true;
+  showStratz(false, 'Checking the token with STRATZ…');
+  try {
+    const res = JSON.parse(await invoke('stratz', { token: t, query: '{ constants { gameVersions { id } } }' }));
+    if (!res?.data) throw new Error(res?.errors?.[0]?.message || 'STRATZ sent no data');
+    await invoke('save_token', { token: t });
+    stratzInput.value = '';
+    window.__TAURI__.event.emit('token', t);
+  } catch (e) {
+    showStratz(false, /said 40[13]/.test(e) ? "STRATZ didn't accept that token. Copy the whole code again from stratz.com/api."
+      : `Couldn't check it with STRATZ (${e}). Check your internet and try again.`, 'err');
+  } finally { stratzSave.disabled = false; }
+};
+stratzInput.addEventListener('keydown', e => { if (e.key === 'Enter') stratzSave.click(); });
+invoke('load_token').then(t => showStratz(!!t)).catch(() => showStratz(false));
+// saved here or in the draft helper
+window.__TAURI__.event.listen('token', e => showStratz(!!e.payload));
 
 // update banner: filled from the check main.rs runs at start
 const showUpdate = v => {

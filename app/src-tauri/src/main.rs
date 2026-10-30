@@ -204,6 +204,12 @@ fn open_feedback_form(kind: &str, version: &str) {
     }
 }
 
+// Customize's "Open stratz.com/api" button; a fixed address like the other links
+#[tauri::command]
+fn open_stratz() {
+    let _ = std::process::Command::new("explorer").arg("https://stratz.com/api").spawn();
+}
+
 #[tauri::command]
 fn open_feedback(app: AppHandle, kind: String) {
     open_feedback_form(&kind, &app.package_info().version.to_string());
@@ -360,7 +366,7 @@ fn main() {
                 })
                 .build(),
         )
-        .invoke_handler(tauri::generate_handler![stratz, load_token, save_token, get_settings, set_setting, get_update, open_releases, is_installed, install_update, whats_new, open_feedback, dota_setup])
+        .invoke_handler(tauri::generate_handler![stratz, load_token, save_token, get_settings, set_setting, get_update, open_releases, is_installed, install_update, whats_new, open_feedback, open_stratz, dota_setup])
         .setup(|app| {
             let saved = load_settings(app.handle());
             // another app may already own the combination; the tray item still works then

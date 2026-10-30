@@ -52,8 +52,9 @@ Press **Ctrl+Shift+D** in game to open Customize. The tray icon has the draft he
 4. In Steam, right-click Dota 2, then Properties, and add `-gamestateintegration` to Launch Options. Customize shows
    "Dota is connected" once this works.
 5. In Dota's video settings, pick **Borderless Window**, so the overlay can sit on top of the game.
-6. For the draft helper and hints, get a token at [stratz.com/api](https://stratz.com/api) and paste it into the
-   draft helper window.
+6. For the draft helper's counter picks and the in-game hints, add a free STRATZ token. Customize's **STRATZ token**
+   section walks you through it: **Open stratz.com/api**, log in with Steam, copy the **Default Token**, paste it and
+   click Save. It checks the token with STRATZ before saving it.
 
 The files aren't code-signed, so Windows may show a SmartScreen warning. Pick "More info", then "Run anyway".
 

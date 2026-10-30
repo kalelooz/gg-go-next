@@ -3,6 +3,10 @@
 Every version of GG Go Next. The app shows the newest section in its "What's new" window after an update, and each
 GitHub release uses the same text, so keep every change on one line that starts with `- `.
 
+## 0.4.1
+
+- **STRATZ token in Customize.** A new section explains what the token is for, opens stratz.com/api for you and checks the token before saving it, so you don't have to wait for a draft to set it up.
+
 ## 0.4.0
 
 - **One-click Dota setup.** Customize has a "Set up Dota" button that finds Dota through Steam and puts the game-data file in its folder, so nobody has to copy it by hand. A line under it turns green once Dota is connected. On a fresh install, Customize opens by itself until this is done.

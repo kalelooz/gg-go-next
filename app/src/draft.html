@@ -289,7 +289,7 @@ if (stratzToken) invoke('save_token', { token: stratzToken }).catch(() => {});
 function token() {
   $('tokenRow').hidden = !!stratzToken;
   // keep a STRATZ error on screen instead of covering it with the how-to
-  if (!stratzToken && !$('status').classList.contains('err')) status('Counter picks need a free STRATZ token. Log in with Steam at stratz.com/api, copy the Default Token and paste it here.');
+  if (!stratzToken && !$('status').classList.contains('err')) status('Counter picks need a free STRATZ token. Log in with Steam at stratz.com/api, copy the Default Token and paste it here. Customize (Ctrl+Shift+D) walks you through it.');
   return stratzToken;
 }
 async function stratz(query) {
@@ -575,10 +575,14 @@ $('saveToken').onclick = async () => {
   if (!t) { status('Paste the token first.', true); return; }
   try { await invoke('save_token', { token: t }); }
   catch (e) { status(`Couldn't save the token: ${e}`, true); return; }
-  stratzToken = t; $('token').value = '';
-  token(); status('Token saved.');
-  loadRoles(); loadMine(state.pos); [...state.enemy, ...state.ally].forEach(loadMatchup);
+  $('token').value = '';
+  window.__TAURI__.event.emit('token', t);
 };
+// saved here or in Customize
+listen('token', e => {
+  stratzToken = e.payload; token(); status('Token saved.');
+  loadRoles(); loadMine(state.pos); [...state.enemy, ...state.ally].forEach(loadMatchup);
+});
 
 // --- render ---
 // Filled heroes, then the static field (so typing focus survives re-renders), then empty slots
