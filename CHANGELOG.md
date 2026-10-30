@@ -6,6 +6,7 @@ GitHub release uses the same text, so keep every change on one line that starts 
 ## 0.4.1
 
 - **STRATZ token in Customize.** A new section explains what the token is for, opens stratz.com/api for you and checks the token before saving it, so you don't have to wait for a draft to set it up.
+- On Windows 10, the tray menu no longer opens half-hidden behind the box of hidden tray icons.
 
 ## 0.4.0
 

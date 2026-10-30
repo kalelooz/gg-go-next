@@ -9,7 +9,7 @@ use std::path::PathBuf;
 use std::sync::Mutex;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::menu::{CheckMenuItem, IsMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu};
-use tauri::tray::TrayIconBuilder;
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager, WindowEvent};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 use tauri_plugin_updater::UpdaterExt;
@@ -202,6 +202,55 @@ fn open_feedback_form(kind: &str, version: &str) {
         let url = format!("https://github.com/kalelooz/gg-go-next/issues/new?template={form}&version={version}");
         let _ = std::process::Command::new("explorer").arg(url).spawn();
     }
+}
+
+// Windows 10 keeps its hidden-icons box open on top of our tray menu when the icon lives in that box.
+// After a right click, wait until our menu is open, then hide the box so the menu shows in full. Hiding it
+// earlier, while the button is still down, could swallow the click. Windows 11 draws that box differently,
+// so the window isn't found there and this does nothing.
+#[cfg(windows)]
+fn hide_tray_overflow_once_menu_opens() {
+    #[link(name = "user32")]
+    extern "system" {
+        fn FindWindowW(class: *const u16, title: *const u16) -> isize;
+        fn FindWindowExW(parent: isize, after: isize, class: *const u16, title: *const u16) -> isize;
+        fn IsWindowVisible(hwnd: isize) -> i32;
+        fn ShowWindow(hwnd: isize, cmd: i32) -> i32;
+        fn GetWindowThreadProcessId(hwnd: isize, pid: *mut u32) -> u32;
+    }
+    let wide = |s: &str| s.encode_utf16().chain([0]).collect::<Vec<u16>>();
+    let (overflow, menu) = (wide("NotifyIconOverflowWindow"), wide("#32768"));
+    std::thread::spawn(move || {
+        // SAFETY: plain user32 calls with null-terminated class names; a missing window is 0 and skipped
+        unsafe {
+            let box_hwnd = FindWindowW(overflow.as_ptr(), std::ptr::null());
+            if box_hwnd == 0 || IsWindowVisible(box_hwnd) == 0 {
+                return;
+            }
+            // popup menus are top-level "#32768" windows; ours belongs to this process
+            let ours = || {
+                let mut w = 0;
+                loop {
+                    w = FindWindowExW(0, w, menu.as_ptr(), std::ptr::null());
+                    if w == 0 {
+                        return false;
+                    }
+                    let mut pid = 0;
+                    GetWindowThreadProcessId(w, &mut pid);
+                    if pid == std::process::id() && IsWindowVisible(w) != 0 {
+                        return true;
+                    }
+                }
+            };
+            for _ in 0..60 {
+                if ours() {
+                    ShowWindow(box_hwnd, 0); // SW_HIDE
+                    return;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+        }
+    });
 }
 
 // Customize's "Open stratz.com/api" button; a fixed address like the other links
@@ -545,6 +594,12 @@ fn main() {
                 // the version shows on hover, which the bug form points people to
                 .tooltip(format!("GG Go Next {}", app.package_info().version))
                 .menu(&menu)
+                .on_tray_icon_event(|_, ev| {
+                    if let TrayIconEvent::Click { button: MouseButton::Right, button_state: MouseButtonState::Down, .. } = ev {
+                        #[cfg(windows)]
+                        hide_tray_overflow_once_menu_opens();
+                    }
+                })
                 .on_menu_event(move |app, ev| {
                     let id = ev.id().as_ref();
                     if id == "quit" {
