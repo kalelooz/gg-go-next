@@ -11,13 +11,102 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tauri::menu::{CheckMenuItem, IsMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager, WindowEvent};
-use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, ShortcutState};
+use tauri_plugin_global_shortcut::{GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 use tauri_plugin_updater::UpdaterExt;
 
-// Opens the Customize window over the game and closes it again, so nobody has to alt-tab to the tray
-const HOTKEY: &str = "ctrl+shift+d";
-// Hides and shows the overlay, since it sits over Dota's shop on the right
-const HIDE_KEY: &str = "ctrl+shift+s";
+// Default hotkeys, changeable in Customize: "customize" opens Customize over the game so nobody has to alt-tab to the
+// tray, "hide" hides and shows the overlay since it sits over Dota's shop on the right
+const KEYS: [(&str, &str); 2] = [("customize", "Ctrl+Shift+D"), ("hide", "Ctrl+Shift+S")];
+
+fn hotkey(app: &AppHandle, which: &str) -> String {
+    let saved = app.try_state::<Settings>().and_then(|s| s.0.lock().unwrap()["hotkeys"][which].as_str().map(str::to_string));
+    saved.unwrap_or_else(|| KEYS.iter().find(|k| k.0 == which).map_or("", |k| k.1).to_string())
+}
+
+// Ctrl or Alt keeps it off the plain keys Dota uses. With only one of them, letters and digits are still Dota's
+// (Ctrl+Q learns a skill, Ctrl+1 sets a control group, Alt+Q pings it), so those need a second modifier.
+fn check_combo(combo: &str) -> Result<Shortcut, String> {
+    let s: Shortcut = combo.parse().map_err(|_| format!("{combo} can't be used as a hotkey. Try another."))?;
+    if !s.mods.intersects(Modifiers::CONTROL | Modifiers::ALT) {
+        return Err("Hold Ctrl or Alt with the key, so it can't take a key you use in game.".into());
+    }
+    let key = format!("{:?}", s.key);
+    let mods = (s.mods & (Modifiers::CONTROL | Modifiers::ALT | Modifiers::SHIFT)).bits().count_ones();
+    if mods == 1 && (key.starts_with("Key") || key.starts_with("Digit")) {
+        return Err(format!("{combo} is a Dota command already. Add Shift, like Ctrl+Shift+{}.", key.trim_start_matches("Key").trim_start_matches("Digit")));
+    }
+    Ok(s)
+}
+
+// registers whatever isn't held yet; another app may own a combination, and the tray items still work then
+fn register_hotkeys(app: &AppHandle) {
+    for (which, _) in KEYS {
+        let combo = hotkey(app, which);
+        if let Ok(s) = combo.parse::<Shortcut>() {
+            if !app.global_shortcut().is_registered(s) {
+                if let Err(e) = app.global_shortcut().register(s) {
+                    eprintln!("hotkey {combo} not available: {e}");
+                }
+            }
+        }
+    }
+}
+
+// ok is false when Windows refused the combination because another program holds it
+fn hotkeys_status(app: &AppHandle) -> Value {
+    let mut out = json!({});
+    for (which, _) in KEYS {
+        let combo = hotkey(app, which);
+        let ok = combo.parse::<Shortcut>().is_ok_and(|s| app.global_shortcut().is_registered(s));
+        out[which] = json!({ "combo": combo, "ok": ok });
+    }
+    out
+}
+
+#[tauri::command]
+fn get_hotkeys(app: AppHandle) -> Value {
+    hotkeys_status(&app)
+}
+
+// While Customize waits for a new combination it lets go of both, so pressing a current one reaches the window
+#[tauri::command]
+fn record_hotkey(app: AppHandle, recording: bool) -> Value {
+    if recording {
+        let _ = app.global_shortcut().unregister_all();
+    } else {
+        register_hotkeys(&app);
+    }
+    hotkeys_status(&app)
+}
+
+#[tauri::command]
+fn set_hotkey(app: AppHandle, which: String, combo: String) -> Result<Value, String> {
+    let other = KEYS.iter().find(|k| k.0 != which).map(|k| k.0).filter(|_| KEYS.iter().any(|k| k.0 == which)).ok_or("unknown hotkey")?;
+    let new = check_combo(&combo)?;
+    if hotkey(&app, other).parse::<Shortcut>().is_ok_and(|o| o.id() == new.id()) {
+        return Err(format!("{combo} already {}. Pick another.", if other == "hide" { "hides the overlay" } else { "opens Customize" }));
+    }
+    app.global_shortcut().register(new).map_err(|_| format!("Another program already uses {combo}. Pick another."))?;
+    {
+        let state = app.state::<Settings>();
+        let mut s = state.0.lock().unwrap();
+        s["hotkeys"][&which] = json!(combo);
+        save_settings(&app, &s);
+    }
+    register_hotkeys(&app);
+    tray_key_labels(&app);
+    Ok(hotkeys_status(&app))
+}
+
+// the tray shows each hotkey next to its item
+fn tray_key_labels(app: &AppHandle) {
+    if let Some(item) = app.try_state::<TrayMenu>().and_then(|m| m.0.get("settings")).and_then(|i| i.as_menuitem().cloned()) {
+        let _ = item.set_text(format!("Customize overlay   {}", hotkey(app, "customize")));
+    }
+    if let Some(item) = app.try_state::<ShowItem>() {
+        let _ = item.0.set_text(format!("Show overlay   {}", hotkey(app, "hide")));
+    }
+}
 
 // the tray's "Show overlay" tick, so the hotkey can keep it in step
 struct ShowItem(CheckMenuItem<tauri::Wry>);
@@ -399,7 +488,7 @@ fn save_token(app: tauri::AppHandle, token: String) -> Result<(), String> {
 // (id, label, on at start); the overlay's own defaults in index.html must match
 // Which runes, stacks and Roshan calls talk is set per role in Customize, so the tray only has the master switch
 const TOGGLES: [(&str, &str, bool); 2] = [
-    ("show", "Show overlay   Ctrl+Shift+S", true),
+    ("show", "Show overlay", true),
     ("voice", "Voice alerts", true),
 ];
 
@@ -434,7 +523,7 @@ fn main() {
                     if event.state() != ShortcutState::Pressed {
                         return;
                     }
-                    if shortcut.matches(Modifiers::CONTROL | Modifiers::SHIFT, Code::KeyS) {
+                    if hotkey(app, "hide").parse::<Shortcut>().is_ok_and(|h| h.id() == shortcut.id()) {
                         toggle_show(app);
                     } else {
                         toggle_settings(app);
@@ -442,16 +531,11 @@ fn main() {
                 })
                 .build(),
         )
-        .invoke_handler(tauri::generate_handler![stratz, load_token, save_token, get_settings, set_setting, get_update, open_releases, is_installed, install_update, whats_new, open_feedback, open_stratz, dota_setup])
+        .invoke_handler(tauri::generate_handler![stratz, load_token, save_token, get_settings, set_setting, get_hotkeys, record_hotkey, set_hotkey, get_update, open_releases, is_installed, install_update, whats_new, open_feedback, open_stratz, dota_setup])
         .setup(|app| {
             let saved = load_settings(app.handle());
-            // another app may already own the combination; the tray item still works then
-            for key in [HOTKEY, HIDE_KEY] {
-                if let Err(e) = app.global_shortcut().register(key) {
-                    eprintln!("hotkey {key} not available: {e}");
-                }
-            }
             app.manage(Settings(Mutex::new(saved.clone())));
+            register_hotkeys(app.handle());
             app.manage(Update(Mutex::new(None)));
 
             // "What's new" opens once per version, only after an update: a fresh install has no settings yet,
@@ -565,7 +649,7 @@ fn main() {
 
             let menu = Menu::new(app)?;
             menu.append(&MenuItem::with_id(app, "draft", "Draft helper", true, None::<&str>)?)?;
-            menu.append(&MenuItem::with_id(app, "settings", "Customize overlay   Ctrl+Shift+D", true, None::<&str>)?)?;
+            menu.append(&MenuItem::with_id(app, "settings", "Customize overlay", true, None::<&str>)?)?;
             menu.append(&PredefinedMenuItem::separator(app)?)?;
             for (id, label, on) in TOGGLES {
                 let on = saved["toggles"][id].as_bool().unwrap_or(on);
@@ -600,6 +684,7 @@ fn main() {
             menu.append(&MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?)?;
 
             app.manage(TrayMenu(menu.clone()));
+            tray_key_labels(app.handle());
             if saved["toggles"]["check_updates"].as_bool() != Some(false) {
                 let handle = app.handle().clone();
                 let menu = menu.clone();
@@ -730,8 +815,22 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::{changes_for, is_newer, library_paths, trim_logs, CHANGELOG};
+    use super::{changes_for, check_combo, is_newer, library_paths, trim_logs, CHANGELOG, KEYS};
     use std::path::PathBuf;
+
+    #[test]
+    fn hotkey_rules() {
+        for (_, combo) in KEYS {
+            assert!(check_combo(combo).is_ok(), "{combo}");
+        }
+        assert!(check_combo("Ctrl+Alt+Q").is_ok());
+        assert!(check_combo("Alt+F9").is_ok());
+        assert!(check_combo("Shift+S").is_err(), "no Ctrl or Alt");
+        assert!(check_combo("F4").is_err(), "plain game key");
+        assert!(check_combo("Ctrl+Q").is_err(), "Dota learns a skill with it");
+        assert!(check_combo("Alt+1").is_err(), "Dota control group");
+        assert!(check_combo("Ctrl+Nope").is_err());
+    }
 
     #[test]
     fn steam_library_paths() {

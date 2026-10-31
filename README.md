@@ -19,7 +19,7 @@ Made by kalelooz.
   drag picks into Pos 1 to 5, and see which heroes do well against the enemy draft and in your lane, from
   Divine and Immortal games.
 
-Press **Ctrl+Shift+D** in game to open Customize, and **Ctrl+Shift+S** to hide or show the overlay (handy while the shop is open). The tray icon has the draft helper, voice choice and your role.
+Press **Ctrl+Shift+D** in game to open Customize, and **Ctrl+Shift+S** to hide or show the overlay (handy while the shop is open). You can change both under Hotkeys in Customize. The tray icon has the draft helper, voice choice and your role.
 
 ## What it reads, and what it never does
 

@@ -98,13 +98,18 @@ select{font:inherit;color:var(--ink);background:var(--well);border:1px solid var
 .steps .err{color:#ff7a6b}
 :root[data-theme=light] .steps .err{color:#b3261e}
 .paste{display:flex;gap:8px}
+/* hotkeys: a name and the combination, click the combination to change it */
+.hk{display:flex;align-items:center;gap:12px;margin:0 0 8px}
+.hk span{flex:1;color:var(--ink)}
+.steps .hk button{margin:0;min-width:140px}
+.steps .hk button[aria-pressed=true]{border-color:var(--gold);color:var(--gold)}
 .paste input{flex:1;min-width:0;font:inherit;color:var(--ink);background:var(--well);border:1px solid var(--line);border-radius:3px;padding:5px 8px;user-select:text}
 </style>
 </head>
 <body>
 <header data-tauri-drag-region>
   <h1 data-tauri-drag-region>Customize overlay</h1>
-  <span class="key" data-tauri-drag-region>Ctrl+Shift+D opens and closes this, in game too. Ctrl+Shift+S hides the overlay</span>
+  <span class="key" id="keyHint" data-tauri-drag-region>Ctrl+Shift+D opens and closes this, in game too. Ctrl+Shift+S hides the overlay</span>
   <button class="fb" id="feedback" type="button" aria-expanded="false" aria-controls="fbmenu">Report a problem or idea</button>
   <button class="x" id="close" type="button" aria-label="Close">×</button>
 </header>
@@ -228,7 +233,13 @@ const render = () => {
     </div><h2>Your role</h2>${rolePick}<div id="perRole">${roleHtml()}</div>` + GROUPS.map(([name, opts]) => `<h2>${name}</h2>` + opts.map(([id, label, what, def]) =>
     `<label class="opt" data-id="${id}"><input type="checkbox" id="${id}" ${value(id, def) ? 'checked' : ''}><b>${label}</b><small>${what}</small></label>`).join('')).join('')
     + `<label class="opt" style="grid-template-columns:1fr"><b>Voice</b><select id="voice_pick">${VOICES.map(([v, l]) =>
-      `<option value="${v}" ${value('voice_pick', 'am_michael') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`;
+      `<option value="${v}" ${value('voice_pick', 'am_michael') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`
+    + `<h2>Hotkeys</h2><div id="hotkeys" class="steps">
+      <p>Click a hotkey, then press the new combination. It needs Ctrl or Alt; Ctrl+Shift with a letter is safest. Esc cancels.</p>
+      <div class="hk"><span>Open and close Customize</span><button type="button" class="plain" data-hk="customize" aria-pressed="false"></button></div>
+      <div class="hk"><span>Hide and show the overlay</span><button type="button" class="plain" data-hk="hide" aria-pressed="false"></button></div>
+      <p id="hkMsg" aria-live="polite"></p>
+    </div>`;
   document.getElementById('voice_pick').disabled = !document.getElementById('voice').checked;
 };
 render();
@@ -273,7 +284,49 @@ demo.addEventListener('load', () => setTimeout(() => {
   previewRole(false);
 }, 300));
 
-const hide = () => win.hide();
+// Hotkeys: main.rs lets go of both while one is picked, so pressing a current combination reaches this window
+const hkMsg = document.getElementById('hkMsg');
+const DOES = { customize: 'opens and closes Customize', hide: 'hides and shows the overlay' };
+let picking = null;
+const showKeys = (k, msg, kind = '') => {
+  if (!k) return;
+  for (const b of document.querySelectorAll('[data-hk]')) { b.textContent = k[b.dataset.hk].combo; b.setAttribute('aria-pressed', 'false'); }
+  document.getElementById('keyHint').textContent = `${k.customize.combo} opens and closes this, in game too. ${k.hide.combo} hides the overlay`;
+  const taken = Object.values(k).filter(h => !h.ok).map(h => `Another program already uses ${h.combo}, so it does nothing right now. Pick another.`);
+  hkMsg.textContent = msg ?? taken.join(' ');
+  hkMsg.className = kind || (msg == null && taken.length ? 'err' : '');
+};
+const stopPicking = (msg, kind) => {
+  if (!picking) return;
+  picking = null;
+  invoke('record_hotkey', { recording: false }).then(k => showKeys(k, msg, kind)).catch(() => {});
+};
+document.getElementById('hotkeys').addEventListener('click', e => {
+  const b = e.target.closest('[data-hk]');
+  if (!b) return;
+  if (picking === b.dataset.hk) return stopPicking();
+  picking = b.dataset.hk;
+  document.querySelectorAll('[data-hk]').forEach(x => x.setAttribute('aria-pressed', x === b));
+  b.textContent = 'Press keys…';
+  hkMsg.textContent = ''; hkMsg.className = '';
+  invoke('record_hotkey', { recording: true }).catch(() => {});
+});
+// capture phase, so Escape cancels the pick instead of closing the window
+addEventListener('keydown', e => {
+  if (!picking) return;
+  e.preventDefault(); e.stopPropagation();
+  if (e.key === 'Escape') return stopPicking();
+  if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
+  const combo = [e.ctrlKey && 'Ctrl', e.altKey && 'Alt', e.shiftKey && 'Shift', e.code.replace(/^(Key|Digit)/, '')].filter(Boolean).join('+');
+  const which = picking;
+  invoke('set_hotkey', { which, combo }).then(k => { picking = null; showKeys(k, `Saved. ${combo} now ${DOES[which]}.`, 'ok'); },
+    err => { hkMsg.textContent = String(err); hkMsg.className = 'err'; });
+}, true);
+// leaving the window mid-pick gives the old keys back
+addEventListener('blur', () => stopPicking());
+invoke('get_hotkeys').then(k => showKeys(k)).catch(() => {});
+
+const hide = () => { stopPicking(); win.hide(); };
 document.getElementById('close').onclick = hide;
 
 // feedback choices: each button opens its GitHub issue form (main.rs only knows these three)
