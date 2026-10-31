@@ -17,3 +17,6 @@ Dota Helper/
 
 # internal notes, research and mockups: kept on this PC, never in the public repo
 notes/
+
+# design-taste working files
+.taste-skill/
