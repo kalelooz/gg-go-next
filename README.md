@@ -5,9 +5,9 @@ game feed Valve made for tools like this. No account, no ads. Made by kalelooz.
 
 **[Download for Windows](../../releases/latest)** · [Is it safe?](#is-it-safe) · [Setup](#setup) · [FAQ](#faq)
 
-<a href="docs/tour.mp4"><img src="docs/tour.webp" width="720" alt="A 45-second tour: the overlay's timers, item and skill hints, spoken calls, the draft helper before and during a draft, and Customize"></a>
+<a href="https://kalelooz.github.io/gg-go-next/"><img src="docs/tour.webp" width="720" alt="A 45-second tour: the overlay's timers, item and skill hints, spoken calls, the draft helper before and during a draft, and Customize"></a>
 
-[Watch it with sound (45 seconds)](docs/tour.mp4)
+[Watch it with sound on the website (45 seconds)](https://kalelooz.github.io/gg-go-next/)
 
 ## What you get
 
@@ -22,26 +22,16 @@ game feed Valve made for tools like this. No account, no ads. Made by kalelooz.
 
 ### Hear the voices
 
-Each one says a rune call and a joke. Pick yours in Customize, under Voice.
-
-<table>
-<tr>
-<td><b>Michael</b> (US)<br><video src="https://github.com/user-attachments/assets/fb25ee06-7add-407b-9b14-b20e47c51337" controls width="320"></video></td>
-<td><b>Fenrir</b> (US)<br><video src="https://github.com/user-attachments/assets/b3426fb7-5141-4301-b6d5-c687931c04e8" controls width="320"></video></td>
-</tr>
-<tr>
-<td><b>Puck</b> (US)<br><video src="https://github.com/user-attachments/assets/c2b469c5-82d6-4f30-80b6-43fb071cf225" controls width="320"></video></td>
-<td><b>Heart</b> (US)<br><video src="https://github.com/user-attachments/assets/ce55f056-55c9-463c-b3e0-35b5b4929b2c" controls width="320"></video></td>
-</tr>
-<tr>
-<td><b>Bella</b> (US)<br><video src="https://github.com/user-attachments/assets/64eb32b7-5473-4074-9fe6-15de4aaad7f4" controls width="320"></video></td>
-<td><b>Nicole</b> (US, soft)<br><video src="https://github.com/user-attachments/assets/a1ff9f0c-fd82-4d61-a64d-394ebfb5191c" controls width="320"></video></td>
-</tr>
-<tr>
-<td><b>George</b> (UK)<br><video src="https://github.com/user-attachments/assets/f51c5fd1-42b1-48c4-8dbe-c987210e4453" controls width="320"></video></td>
-<td><b>Emma</b> (UK)<br><video src="https://github.com/user-attachments/assets/b1c2f07c-e9f6-484d-acf2-9d47d77a1117" controls width="320"></video></td>
-</tr>
-</table>
+| Voice | Message | |
+|---|---|---|
+| Michael (US) | "Power rune and bounty in twenty seconds." | [▶ Listen](https://kalelooz.github.io/gg-go-next/#michael) |
+| Fenrir (US) | "Roshan could be up now, top pit." | [▶ Listen](https://kalelooz.github.io/gg-go-next/#fenrir) |
+| Puck (US) | "No TP. Enjoy the walk." | [▶ Listen](https://kalelooz.github.io/gg-go-next/#puck) |
+| Heart (US) | "Stack in five." | [▶ Listen](https://kalelooz.github.io/gg-go-next/#heart) |
+| Bella (US) | "They have an invisible hero. Carry dust or a sentry." | [▶ Listen](https://kalelooz.github.io/gg-go-next/#bella) |
+| Nicole (US, soft) | "Dark map. Bring a flashlight." | [▶ Listen](https://kalelooz.github.io/gg-go-next/#nicole) |
+| George (UK) | "Roshan is alive and lonely." | [▶ Listen](https://kalelooz.github.io/gg-go-next/#george) |
+| Emma (UK) | "Skill point ready." | [▶ Listen](https://kalelooz.github.io/gg-go-next/#emma) |
 
 <table>
 <tr>
@@ -93,7 +83,7 @@ settings. Nothing installs without that click.
 No. If it helps your games, you can tip at [ko-fi.com/kalelooz](https://ko-fi.com/kalelooz).
 
 **Something's wrong, or I have an idea.**
-Click **Report a problem or idea** in Customize or the tray. It opens a short form here with your version filled in.
+Click **Report a problem** in Customize, or **Report a problem or idea** in the tray. It opens a short form here with your version filled in.
 
 **Was AI used to make it?**
 Yes. kalelooz plays Dota, designs the features, tests them in real games and decides what goes in. The code is

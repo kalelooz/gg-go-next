@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GG Go Next: a free Dota 2 overlay</title>
+<meta name="description" content="A free Windows overlay for Dota 2: rune and Roshan timers, voice calls, item and skill hints, and a draft helper. Uses only Valve's Game State Integration.">
+<meta property="og:title" content="GG Go Next: a free Dota 2 overlay">
+<meta property="og:description" content="Timers, voice calls, item hints and a draft helper for Dota 2. Free and open source.">
+<meta property="og:image" content="https://kalelooz.github.io/gg-go-next/site/poster.jpg">
+<link rel="icon" href="site/icon.png">
+<style>
+/* GitHub Pages site for GG Go Next (served from docs/). Same look as the app: Barlow, charcoal, one gold accent.
+   Follows the system's light or dark mode. */
+@font-face{font-family:Barlow;src:url(site/fonts/barlow-400.woff2) format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:Barlow;src:url(site/fonts/barlow-600.woff2) format('woff2');font-weight:600;font-display:swap}
+@font-face{font-family:Barlow;src:url(site/fonts/barlow-700.woff2) format('woff2');font-weight:700;font-display:swap}
+:root{--bg:#101417;--raise:#171c20;--line:#ffffff17;--ink:#eef2f3;--soft:#a9b3b8;--mute:#7d898e;--gold:#f2c14e;--on-gold:#1a1408;--link:#f2c14e;color-scheme:dark}
+@media (prefers-color-scheme:light){
+  :root{--bg:#f5f6f4;--raise:#ffffff;--line:#00000017;--ink:#151c20;--soft:#47545a;--mute:#5f6b71;--gold:#f2c14e;--on-gold:#1a1408;--link:#8a5d00;color-scheme:light}
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:18px/1.55 Barlow,'Segoe UI',sans-serif}
+a{color:var(--link)}
+a:focus-visible,button:focus-visible,audio:focus-visible,video:focus-visible{outline:3px solid var(--gold);outline-offset:3px;border-radius:4px}
+.wrap{max-width:1040px;margin:0 auto;padding:0 24px}
+header{display:flex;align-items:center;gap:20px;padding:18px 0}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:20px;color:var(--ink);text-decoration:none;margin-right:auto}
+.brand img{width:32px;height:32px}
+nav{display:flex;gap:20px;font-size:16px}
+nav a{color:var(--soft);text-decoration:none}
+nav a:hover{color:var(--ink)}
+.dl{display:inline-flex;align-items:center;gap:8px;font-weight:700;color:var(--on-gold);background:var(--gold);text-decoration:none;border-radius:6px;padding:12px 22px;transition:transform .15s,filter .15s}
+.dl:hover{filter:brightness(1.06)}
+.dl:active{transform:translateY(1px)}
+.dl.small{padding:8px 14px;font-size:16px}
+.hero{padding:56px 0 32px;max-width:720px}
+h1{margin:0 0 16px;font-size:clamp(40px,7vw,64px);line-height:1;letter-spacing:-.5px;font-weight:700;text-wrap:balance}
+.lead{margin:0 0 28px;font-size:21px;color:var(--soft)}
+.fine{margin:14px 0 0;font-size:15px;color:var(--mute)}
+.tour{margin:8px 0 72px}
+.tour video{display:block;width:100%;height:auto;border-radius:12px;border:1px solid var(--line);background:#101417}
+.tour p{margin:10px 0 0;font-size:15px;color:var(--mute)}
+section{padding:0 0 72px}
+h2{margin:0 0 18px;font-size:32px;line-height:1.1;font-weight:700}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start}
+.list{margin:0;padding:0;list-style:none}
+.list li{padding:12px 0;border-top:1px solid var(--line)}
+.list li:first-child{border-top:0;padding-top:0}
+.list b{display:block;font-weight:600}
+.list span{color:var(--soft)}
+.shots{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+figure{margin:0}
+figure img{display:block;width:100%;height:auto;border-radius:10px;border:1px solid var(--line)}
+figcaption{margin-top:8px;font-size:15px;color:var(--soft)}
+.voices{border-collapse:collapse;margin-top:8px}
+.voices th{text-align:left;font-size:15px;font-weight:600;color:var(--mute);padding:0 16px 6px 0}
+.voices td{padding:8px 16px 8px 0;border-top:1px solid var(--line);vertical-align:middle}
+.voices td:nth-child(2){color:var(--soft)}
+.voices tr:target td:first-child{color:var(--link)}
+.voices td:first-child{font-weight:600;min-width:150px}
+.voices small{color:var(--mute);font-weight:400;margin-left:6px}
+.voices audio{height:36px;width:220px;max-width:100%}
+.diagram{display:block;width:100%;height:auto;border-radius:10px}
+ol.steps{margin:0;padding-left:22px}
+ol.steps li{margin:0 0 10px;padding-left:4px}
+code{white-space:nowrap;font-size:.9em;background:var(--raise);border:1px solid var(--line);border-radius:4px;padding:1px 6px}
+dl.faq{margin:0}
+dl.faq dt{font-weight:600;margin-top:20px}
+dl.faq dt:first-child{margin-top:0}
+dl.faq dd{margin:4px 0 0;color:var(--soft)}
+footer{border-top:1px solid var(--line);padding:28px 0 40px;font-size:15px;color:var(--mute)}
+footer .row{display:flex;flex-wrap:wrap;gap:18px;margin-bottom:12px}
+@media (max-width:760px){
+  header nav{display:none}
+  .two,.shots{grid-template-columns:1fr}
+  .hero{padding-top:32px}
+  .voices td:first-child{min-width:0}
+  .voices tr{display:block;padding:10px 0;border-top:1px solid var(--line)}
+  .voices tr:first-child{display:none}
+  .voices td{display:block;border:0;padding:2px 0}
+  .voices audio{width:100%;margin-top:6px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="brand" href="#top"><img src="site/icon.png" alt="">GG Go Next</a>
+    <nav aria-label="Sections">
+      <a href="#voices">Voices</a>
+      <a href="#safe">Is it safe?</a>
+      <a href="#faq">FAQ</a>
+      <a href="https://github.com/kalelooz/gg-go-next">Code on GitHub</a>
+    </nav>
+    <a class="dl small" href="https://github.com/kalelooz/gg-go-next/releases/latest/download/GG-Go-Next-setup.exe">Download</a>
+  </header>
+
+  <main id="top">
+    <div class="hero">
+      <h1>A free helper for Dota 2</h1>
+      <p class="lead">It sits on your screen and tells you what's coming, what to buy and what to pick. Timers, voice calls, item and skill hints, and a draft helper.</p>
+      <a class="dl" href="https://github.com/kalelooz/gg-go-next/releases/latest/download/GG-Go-Next-setup.exe">Download for Windows</a>
+      <p class="fine">Free and open source. No account, no ads. <a href="https://github.com/kalelooz/gg-go-next/releases/latest">Release notes</a></p>
+    </div>
+
+    <div class="tour">
+      <video src="tour.mp4" poster="site/poster.jpg" controls preload="metadata" width="1280" height="720"></video>
+      <p>A 45-second tour, with sound.</p>
+    </div>
+
+    <section class="two">
+      <div>
+        <h2>What you get</h2>
+        <ul class="list">
+          <li><b>Never miss a rune or a stack</b><span>Runes, shrines, lotus pools, stacks, Roshan, Aegis, Tormentor, the enemy glyph and your wards, with a voice call 20 seconds before.</span></li>
+          <li><b>Buy and skill better</b><span>Items that win more right now, and the next skill most good players take.</span></li>
+          <li><b>Only what your role needs</b><span>A carry isn't called for stacks, a support isn't told to farm ancients. Every switch can change per role.</span></li>
+          <li><b>A bit of fun</b><span>Now and then a spoken joke, like "No TP. Enjoy the walk."</span></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Pick better</h2>
+        <div class="shots">
+          <figure><img src="draft-before.jpg" alt="Draft helper before any pick: the best soft support heroes this patch, by win rate" width="1124" height="1728" loading="lazy"><figcaption>Before the draft: your best heroes for your role, or the best this patch.</figcaption></figure>
+          <figure><img src="draft-helper.jpg" alt="Draft helper during a draft: suggested heroes and how each does against every enemy" width="1124" height="1728" loading="lazy"><figcaption>During the draft: type the enemy picks and see who counters them.</figcaption></figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="voices">
+      <h2>Hear the voices</h2>
+      <p>Eight voices, each saying something the app says in a game. Pick yours in Customize, under Voice.</p>
+      <table class="voices">
+        <tr><th>Voice</th><th>Message</th><th>Listen</th></tr>
+        <tr id="michael"><td>Michael<small>US</small></td><td>"Power rune and bounty in twenty seconds."</td><td><audio controls aria-label="Michael: Power rune and bounty in twenty seconds." preload="none" src="voices/michael.mp3"></audio></td></tr>
+        <tr id="fenrir"><td>Fenrir<small>US</small></td><td>"Roshan could be up now, top pit."</td><td><audio controls aria-label="Fenrir: Roshan could be up now, top pit." preload="none" src="voices/fenrir.mp3"></audio></td></tr>
+        <tr id="puck"><td>Puck<small>US</small></td><td>"No TP. Enjoy the walk."</td><td><audio controls aria-label="Puck: No TP. Enjoy the walk." preload="none" src="voices/puck.mp3"></audio></td></tr>
+        <tr id="heart"><td>Heart<small>US</small></td><td>"Stack in five."</td><td><audio controls aria-label="Heart: Stack in five." preload="none" src="voices/heart.mp3"></audio></td></tr>
+        <tr id="bella"><td>Bella<small>US</small></td><td>"They have an invisible hero. Carry dust or a sentry."</td><td><audio controls aria-label="Bella: They have an invisible hero. Carry dust or a sentry." preload="none" src="voices/bella.mp3"></audio></td></tr>
+        <tr id="nicole"><td>Nicole<small>US, soft</small></td><td>"Dark map. Bring a flashlight."</td><td><audio controls aria-label="Nicole: Dark map. Bring a flashlight." preload="none" src="voices/nicole.mp3"></audio></td></tr>
+        <tr id="george"><td>George<small>UK</small></td><td>"Roshan is alive and lonely."</td><td><audio controls aria-label="George: Roshan is alive and lonely." preload="none" src="voices/george.mp3"></audio></td></tr>
+        <tr id="emma"><td>Emma<small>UK</small></td><td>"Skill point ready."</td><td><audio controls aria-label="Emma: Skill point ready." preload="none" src="voices/emma.mp3"></audio></td></tr>
+      </table>
+    </section>
+
+    <section id="safe" class="two">
+      <div>
+        <h2>Is it safe?</h2>
+        <ul class="list">
+          <li><b>Valve's own game feed</b><span>It only uses Game State Integration, the official feed Dota sends to apps you allow.</span></li>
+          <li><b>Hands off the game</b><span>It never reads game memory or game files, and never presses keys or clicks for you.</span></li>
+          <li><b>No account, no server of ours</b><span>Your settings stay on your PC. Online it only talks to STRATZ, Valve's image server and GitHub.</span></li>
+        </ul>
+      </div>
+      <img class="diagram" src="site/how-it-works.svg" alt="Dota sends its official game feed to GG Go Next on your PC, which shows the overlay, voice calls and draft helper. Online it only talks to STRATZ, Valve's image server and GitHub." width="880" height="420" loading="lazy">
+    </section>
+
+    <section class="two">
+      <div>
+        <h2>Setup</h2>
+        <ol class="steps">
+          <li>Download and run <a href="https://github.com/kalelooz/gg-go-next/releases/latest/download/GG-Go-Next-setup.exe">GG-Go-Next-setup.exe</a>. Customize opens by itself.</li>
+          <li>Click <b>Set up Dota</b>.</li>
+          <li>In Steam, right-click Dota 2, then Properties, and add <code>-gamestateintegration</code> to Launch Options. In Dota's video settings, pick <b>Borderless Window</b>.</li>
+          <li>For the draft helper and hints, add a free STRATZ token. Customize walks you through it.</li>
+        </ol>
+        <p class="fine">In game, Ctrl+Shift+D opens Customize and Ctrl+Shift+S hides the overlay.</p>
+      </div>
+      <img class="diagram" src="site/setup.svg" alt="Setup in four steps: install, click Set up Dota, add -gamestateintegration in Steam and pick Borderless Window, then optionally paste a STRATZ token." width="880" height="300" loading="lazy">
+    </section>
+
+    <section id="faq">
+      <h2>FAQ</h2>
+      <dl class="faq">
+        <dt>Can I get banned?</dt>
+        <dd>It only uses the feed Valve built for tools like this and doesn't touch the game. Nobody outside Valve can promise anything, but it does nothing Valve's anti-cheat looks for.</dd>
+        <dt>Windows says the file might be unsafe.</dt>
+        <dd>The files aren't code-signed yet, so SmartScreen warns about them. Pick "More info", then "Run anyway". Each release lists the file's SHA-256 so you can check it's the real one.</dd>
+        <dt>How do updates work?</dt>
+        <dd>When a new version is out, Customize and the tray show Update now. One click installs it and keeps your settings. Nothing installs without that click.</dd>
+        <dt>Does it cost anything?</dt>
+        <dd>No. If it helps your games, you can tip at <a href="https://ko-fi.com/kalelooz">ko-fi.com/kalelooz</a>.</dd>
+        <dt>Was AI used to make it?</dt>
+        <dd>Yes. kalelooz plays Dota, designs the features, tests them in real games and decides what goes in. The code is written with Claude Code.</dd>
+        <dt>Something's wrong, or I have an idea.</dt>
+        <dd>Click Report a problem in Customize, or Report a problem or idea in the tray. Or <a href="https://github.com/kalelooz/gg-go-next/issues/new/choose">open an issue on GitHub</a>.</dd>
+      </dl>
+    </section>
+  </main>
+
+  <footer>
+    <div class="row">
+      <a href="https://github.com/kalelooz/gg-go-next">Code on GitHub</a>
+      <a href="https://github.com/kalelooz/gg-go-next/blob/master/CHANGELOG.md">Changelog</a>
+      <a href="https://ko-fi.com/kalelooz">Buy me a coffee</a>
+    </div>
+    Made by kalelooz. MIT licensed. Data from STRATZ. Voices made with Kokoro. Font: Barlow (SIL OFL).
+    Not affiliated with or endorsed by Valve. Dota 2 is a trademark of Valve Corporation; hero and item pictures belong to Valve.
+  </footer>
+</div>
+</body>
+</html>
