@@ -36,7 +36,7 @@ Press **Ctrl+Shift+D** in game to open Customize, and **Ctrl+Shift+S** to hide o
 
 ## How it works
 
-![How it works: Dota sends its official game feed to GG Go Next on your PC, which shows the overlay, voice calls and draft helper. Online it only talks to STRATZ, Valve's image server and GitHub. It never reads game memory or files, never presses keys, and has no server of its own.](docs/how-it-works.svg)
+![How it works: Dota sends its official game feed to GG Go Next on your PC, which shows the overlay, voice calls and draft helper. Online it only talks to STRATZ, Valve's image server and GitHub. It never reads game memory or files, never presses keys, and has no server of its own.](app/src/guide/how-it-works.svg)
 
 - It only reads Valve's **Game State Integration**, the official feed Dota sends to local apps you allow in a
   config file.
@@ -56,7 +56,7 @@ Press **Ctrl+Shift+D** in game to open Customize, and **Ctrl+Shift+S** to hide o
 
 ## Install
 
-![Setup in four steps: install, click Set up Dota in Customize, add -gamestateintegration in Steam and pick Borderless Window, then optionally paste a STRATZ token. Customize shows a green line when each step worked.](docs/setup.svg)
+![Setup in four steps: install, click Set up Dota in Customize, add -gamestateintegration in Steam and pick Borderless Window, then optionally paste a STRATZ token. Customize shows a green line when each step worked.](app/src/guide/setup.svg)
 
 1. Download `GG-Go-Next-setup.exe` from [Releases](../../releases) and run it. The release notes list its SHA-256;
    in PowerShell, `Get-FileHash GG-Go-Next-setup.exe` should print the same value. If you'd rather not install
@@ -110,7 +110,7 @@ GitHub Actions ([.github/workflows/build.yml](.github/workflows/build.yml)), so 
 | `app/src/` | The windows (`index.html` overlay, `draft.html`, `settings.html`, `topbar.html`, `skillbar.html`) and the game logic they share (`timers.js`, `roles.js`, `picks.js`, ...). Each `*.test.mjs` tests the file it's named after. |
 | `app/src-tauri/` | The Rust side: listens for the game feed, runs the tray menu, and calls STRATZ. |
 | `app/src/voice/` | The recorded voice clips, one folder per voice. |
-| `docs/` | The game-feed config, plus the screenshots and diagrams on this page. |
+| `docs/` | The game-feed config and the screenshots on this page. The two diagrams live in `app/src/guide/`, so Customize shows the same ones. |
 | `tools/` | Scripts that rebuild the hero data, neutral item tables and voice clips. |
 
 ## FAQ

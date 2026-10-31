@@ -75,6 +75,13 @@ select{font:inherit;color:var(--ink);background:var(--well);border:1px solid var
 #fbmenu p{flex-basis:100%;margin:0 0 2px;color:var(--label);font-size:13px}
 #fbmenu button{font:inherit;font-weight:600;color:var(--ink);background:none;border:1px solid var(--line);border-radius:3px;padding:6px 14px;cursor:pointer}
 #fbmenu button:hover{border-color:var(--gold);color:var(--hi)}
+/* "How it works": the setup and how-it-works pictures in place of the settings */
+#guide{flex:1;overflow:auto;display:flex;flex-direction:column;align-items:center;gap:14px;padding:16px}
+#guide[hidden]{display:none}
+#guide:not([hidden]) ~ main{display:none}
+#guide img{width:880px;max-width:100%;height:auto}
+#guide button{font:inherit;font-weight:600;color:var(--bg1);background:var(--gold);border:0;border-radius:3px;padding:6px 16px;cursor:pointer}
+.key{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* shown only when GitHub has a newer version */
 #update{display:flex;align-items:center;gap:12px;padding:8px 14px;background:var(--well);border-bottom:1px solid var(--gold)}
 #update[hidden]{display:none}
@@ -110,6 +117,7 @@ select{font:inherit;color:var(--ink);background:var(--well);border:1px solid var
 <header data-tauri-drag-region>
   <h1 data-tauri-drag-region>Customize overlay</h1>
   <span class="key" id="keyHint" data-tauri-drag-region>Ctrl+Shift+D opens and closes this, in game too. Ctrl+Shift+S hides the overlay</span>
+  <button class="fb" id="guideBtn" type="button" aria-expanded="false" aria-controls="guide">How it works</button>
   <button class="fb" id="feedback" type="button" aria-expanded="false" aria-controls="fbmenu">Report a problem or idea</button>
   <button class="x" id="close" type="button" aria-label="Close">×</button>
 </header>
@@ -123,6 +131,12 @@ select{font:inherit;color:var(--ink);background:var(--well);border:1px solid var
   <span id="updateText">GG Go Next <b id="updateVersion"></b> is out.</span>
   <button id="getUpdate" type="button">Download</button>
 </div>
+<!-- the same two pictures as the README, from guide/ -->
+<section id="guide" aria-label="How GG Go Next works and how to set it up" hidden>
+  <img src="guide/setup.svg" alt="Setup in four steps: install, click Set up Dota here, add -gamestateintegration to Dota's launch options in Steam and pick Borderless Window in Dota, then optionally paste a STRATZ token. Each step shows a green line here when it worked.">
+  <img src="guide/how-it-works.svg" alt="How it works: Dota sends its official game feed to GG Go Next on your PC, which shows the overlay, voice calls and draft helper. Online it only talks to STRATZ, Valve's image server and GitHub. It never reads game memory or files, never presses keys, and has no server of its own.">
+  <button type="button" id="guideClose">Back to settings</button>
+</section>
 <main>
   <div id="list"></div>
   <aside id="preview">
@@ -214,6 +228,7 @@ const render = () => {
       <button type="button" id="gsiInstall" hidden>Set up Dota</button>
       <p id="gsiLaunch">Then in Steam, right-click Dota 2, pick Properties, and add <code>-gamestateintegration</code> to Launch Options.</p>
       <p id="gsiLive">This line turns green once Dota starts with that option.</p>
+      <button type="button" class="plain" id="guideOpen">See the steps as a picture</button>
     </div><h2>STRATZ token</h2><div id="stratz" class="steps">
       <p>The draft helper's counter picks and the item and skill hints in game use numbers from STRATZ, a free Dota stats site. Timers and voice calls work without it.</p>
       <p id="stratzState" aria-live="polite"></p>
@@ -337,8 +352,18 @@ fbMenu.onclick = e => {
   const kind = e.target.closest('button')?.dataset.kind;
   if (kind) { invoke('open_feedback', { kind }); showFeedback(false); }
 };
-// Escape closes this panel first; a second Escape closes the window
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && !fbMenu.hidden) { showFeedback(false); e.stopPropagation(); } });
+// "How it works" swaps the settings for the two guide pictures
+const guide = document.getElementById('guide'), guideBtn = document.getElementById('guideBtn');
+const showGuide = open => { guide.hidden = !open; guideBtn.setAttribute('aria-expanded', open); if (open) guide.scrollTop = 0; };
+guideBtn.onclick = () => showGuide(guide.hidden);
+document.getElementById('guideClose').onclick = () => { showGuide(false); guideBtn.focus(); };
+list.addEventListener('click', e => { if (e.target.id === 'guideOpen') showGuide(true); });
+// Escape closes an open panel first; a second Escape closes the window
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (!fbMenu.hidden) { showFeedback(false); e.stopPropagation(); }
+  else if (!guide.hidden) { showGuide(false); e.stopPropagation(); }
+});
 
 // Dota setup: main.rs finds Dota through Steam; ready means the file is there and current
 const gsiFile = document.getElementById('gsiFile'), gsiInstall = document.getElementById('gsiInstall');
