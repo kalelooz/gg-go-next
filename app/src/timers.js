@@ -173,31 +173,24 @@ export function trackWards(wards, minimap, team, t) {
 export const wardsLeft = (wards, t) =>
   [...wards.values()].map(w => ({ kind: w.kind, left: WARD_LIFE[w.kind] - (t - w.at) })).filter(w => w.left > 0).sort((a, b) => a.left - b.left);
 
-// The ward line: a count and the next one to expire per kind, so 20 wards still fit on one line.
-// With no observers it shows a joke instead, changing every 3 minutes so it doesn't flicker.
-export const DARK_MAP = [
-  'Dark map. Bring a flashlight.',
-  'Dark map. They see you, you see trees.',
-  'Dark map. A ward costs less than a buyback.',
-  'Dark map. Playing on hard mode today?',
-  'Dark map. Even the creeps look nervous.',
-];
-export const NO_OBSERVERS = [
-  'No observers. Sentries spot invis, not ganks.',
-  'No observers. Vision is a team sport.',
-];
-// one joke per 3 minutes of game clock, so a line doesn't flicker between jokes
+// Spoken jokes (Jokes on). Voice only: the overlay's text stays plain. tools/make_voice.py records these
+// same lines as joke-<id>-<n>. Several per moment so they don't get old.
+// dark: no wards up after 15:00; noobs: only sentries up after 15:00; rosh: Roshan never killed by 20:00.
+export const JOKES = {
+  tp: ['No TP. Enjoy the walk.', 'No TP. Walking it is.', 'No TP. Legs only.'],
+  buyback: ["Not enough gold for buyback. Don't die.", 'Not enough gold for buyback. Play safe.'],
+  dark: ['Dark map. Bring a flashlight.', 'Dark map. They see you, you see trees.', 'Dark map. A ward costs less than a buyback.',
+    'Dark map. Playing on hard mode today?', 'Dark map. Even the creeps look nervous.'],
+  noobs: ['No observers. Sentries spot invisible heroes, not ganks.', 'No observers. Vision is a team sport.'],
+  rosh: ['Roshan is alive and lonely.', 'Roshan is alive. Nobody visits.', 'Roshan is alive and bored.'],
+};
+// which line, changing every 3 minutes of game clock so the same joke doesn't come back to back
 export const quipAt = (n, t) => Math.floor(Math.max(0, t) / 180) % n;
-export const pickQuip = (lines, t) => lines[quipAt(lines.length, t)];
-export const NO_TP = ['No TP, enjoy the walk', 'No TP. Walking it is', 'No TP, legs only'];
-export const BUYBACK_SHORT = [n => `Buyback: ${n} short, don't die`, n => `Buyback: ${n} short, play safe`];
-// Roshan alive and never killed after 20:00
-export const ROSH_LONELY = ['alive and lonely', 'alive, nobody visits', 'alive and bored'];
-export function wardLine(left, t) {
-  const kinds = ['observer', 'sentry'].map(kind => {
+
+// The ward line: a count and the next one to expire per kind, so 20 wards still fit on one line.
+export function wardLine(left) {
+  return ['observer', 'sentry'].map(kind => {
     const ws = left.filter(w => w.kind === kind);
     return ws.length ? { kind, count: ws.length, next: Math.min(...ws.map(w => w.left)) } : null;
   }).filter(Boolean);
-  const quip = !kinds.length ? pickQuip(DARK_MAP, t) : kinds[0].kind !== 'observer' ? pickQuip(NO_OBSERVERS, t) : null;
-  return { kinds, quip };
 }

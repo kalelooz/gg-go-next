@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import { SCHEDULES, NO_TP, BUYBACK_SHORT, DARK_MAP, ROSH_LONELY } from './timers.js';
+import { SCHEDULES, JOKES } from './timers.js';
 
 // Every clip the overlay can ask for (see the say() calls in index.html), for every voice in settings.
 // There's no robotic backup voice any more, so a gap here would be a silent alert.
@@ -16,7 +16,7 @@ const subsets = xs => xs.flatMap((x, i) => [[x], ...subsets(xs.slice(i + 1)).map
 const need = new Set(['stack', 'aegis', 'levelup-skill', 'levelup-ult', 'levelup-talent', 'tip-deaths', 'tip-buyback', 'tip-bkb', 'hint-invis', 'hint-vessel', 'farm-ready', 'farm-up', 'farm-stack', 'neutral-craft', 'neutral-behind']);
 for (const ids of spawnsAt.values()) for (const s of subsets(ids.sort((a, b) => ORDER.indexOf(a) - ORDER.indexOf(b)))) need.add('runes-' + s.join('-'));
 // one spoken joke per line on screen (joke() in index.html)
-for (const [id, lines] of Object.entries({ tp: NO_TP, buyback: BUYBACK_SHORT, dark: DARK_MAP, rosh: ROSH_LONELY })) lines.forEach((_, n) => need.add(`joke-${id}-${n}`));
+for (const [id, lines] of Object.entries(JOKES)) lines.forEach((_, n) => need.add(`joke-${id}-${n}`));
 for (const what of ['move', 'maybe', 'up']) for (const pit of ['top', 'bottom']) need.add(`rosh-${what}-${pit}`);
 
 const dir = new URL('./voice/', import.meta.url);

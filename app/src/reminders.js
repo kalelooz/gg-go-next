@@ -14,6 +14,7 @@ export const POLICY = {
   'joke-tp': { max: 2, every: 600 },
   'joke-buyback': { max: 2, every: 600 },
   'joke-dark': { max: 2, every: 900 },
+  'joke-noobs': { max: 2, every: 900 },
   'joke-rosh': { max: 1 },
 };
 // no two advice lines within this many game seconds of each other; a held-back line tries again later

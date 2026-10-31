@@ -1,7 +1,7 @@
 // Tests for timers.js. npm test runs every test file with plain node; a failed assert stops the run.
 import assert from 'node:assert/strict';
 import { SCHEDULES, untilNext, untilStack, fmt, roshan, pits, buildingLost, newGlyphs, glyphLoss, glyphUsed, glyphIn,
-  dayNight, tpStatus, buybackStatus, newStreaks, applyKills, courierStatus, newWards, trackWards, wardsLeft, wardLine, DARK_MAP, NO_OBSERVERS, pickQuip, BUYBACK_SHORT } from './timers.js';
+  dayNight, tpStatus, buybackStatus, newStreaks, applyKills, courierStatus, newWards, trackWards, wardsLeft, wardLine, JOKES, quipAt } from './timers.js';
 
 assert.equal(untilNext(0, SCHEDULES.power), 360);
 assert.equal(untilNext(359, SCHEDULES.power), 1);
@@ -118,11 +118,12 @@ assert.equal(courierStatus(cs, 7), null);
 }
 {
   const many = [...Array(12)].map((_, i) => ({ kind: i % 3 ? 'sentry' : 'observer', left: 100 + i }));
-  assert.deepEqual(wardLine(many, 600), { kinds: [{ kind: 'observer', count: 4, next: 100 }, { kind: 'sentry', count: 8, next: 101 }], quip: null });
-  assert.equal(wardLine([], 0).quip, DARK_MAP[0]);
-  assert.equal(wardLine([], 179).quip, DARK_MAP[0]);                 // same joke for 3 minutes
-  assert.equal(wardLine([], 180).quip, DARK_MAP[1]);
-  assert.equal(wardLine([{ kind: 'sentry', left: 50 }], 0).quip, NO_OBSERVERS[0]);
+  assert.deepEqual(wardLine(many), [{ kind: 'observer', count: 4, next: 100 }, { kind: 'sentry', count: 8, next: 101 }]);
+  assert.deepEqual(wardLine([]), []);
 }
-assert.equal(pickQuip(BUYBACK_SHORT, 200)(312), 'Buyback: 312 short, play safe');
+// same joke for 3 minutes, then the next one, wrapping around
+assert.equal(quipAt(JOKES.dark.length, 179), 0);
+assert.equal(quipAt(JOKES.dark.length, 180), 1);
+assert.equal(quipAt(JOKES.buyback.length, 200), 1);
+assert.equal(quipAt(JOKES.tp.length, 3 * 180), 0);
 console.log('timers ok');

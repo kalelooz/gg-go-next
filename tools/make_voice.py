@@ -51,13 +51,14 @@ def lines():
     # neutral items (app/src/neutral.js)
     out['neutral-craft'] = 'Your neutral slot is empty. Craft one.'
     out['neutral-behind'] = 'A new neutral tier is open. Clear camps and craft.'
-    # spoken jokes: joke-<id>-<n> is line n of the matching list in app/src/timers.js (buyback without the number)
+    # spoken jokes: joke-<id>-<n> is line n of JOKES in app/src/timers.js (Roshan spelled to sound right)
     jokes = {
         'tp': ['No TP. Enjoy the walk.', 'No TP. Walking it is.', 'No TP. Legs only.'],
         'buyback': ["Not enough gold for buyback. Don't die.", 'Not enough gold for buyback. Play safe.'],
         'dark': ['Dark map. Bring a flashlight.', 'Dark map. They see you, you see trees.',
                  'Dark map. A ward costs less than a buyback.', 'Dark map. Playing on hard mode today?',
                  'Dark map. Even the creeps look nervous.'],
+        'noobs': ['No observers. Sentries spot invisible heroes, not ganks.', 'No observers. Vision is a team sport.'],
         'rosh': [f'{ROSH} is alive and lonely.', f'{ROSH} is alive. Nobody visits.', f'{ROSH} is alive and bored.'],
     }
     for kind, texts in jokes.items():
