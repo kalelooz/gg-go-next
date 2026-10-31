@@ -3,6 +3,10 @@
 Every version of GG Go Next. The app shows the newest section in its "What's new" window after an update, and each
 GitHub release uses the same text, so keep every change on one line that starts with `- `.
 
+## 0.4.2
+
+- **Update notices while it runs.** The app now asks GitHub for a new version every hour, not only at start, so you hear about updates even if you leave it open all day.
+
 ## 0.4.1
 
 - **STRATZ token in Customize.** A new section explains what the token is for, opens stratz.com/api for you and checks the token before saving it, so you don't have to wait for a draft to set it up.

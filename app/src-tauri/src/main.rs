@@ -244,8 +244,10 @@ async fn stratz(token: String, query: String) -> Result<String, String> {
     .map_err(|e| e.to_string())?
 }
 
-// Update notice: one request to GitHub at start (unless "Check for updates" is off). Nothing downloads or
-// installs by itself; the tray item and Customize's banner run install_update when clicked.
+// Update notice: one request to GitHub at start and then every hour (unless "Check for updates" is off), well
+// under GitHub's 60 an hour. Nothing downloads or installs by itself; the tray item and Customize's banner run
+// install_update when clicked.
+const UPDATE_EVERY: std::time::Duration = std::time::Duration::from_secs(60 * 60);
 const RELEASES_API: &str = "https://api.github.com/repos/kalelooz/gg-go-next/releases/latest";
 const RELEASES_PAGE: &str = "https://github.com/kalelooz/gg-go-next/releases/latest";
 
@@ -696,12 +698,19 @@ fn main() {
 
             app.manage(TrayMenu(menu.clone()));
             tray_key_labels(app.handle());
-            if saved["toggles"]["check_updates"].as_bool() != Some(false) {
+            {
                 let handle = app.handle().clone();
                 let menu = menu.clone();
                 std::thread::spawn(move || {
                     let current = handle.package_info().version.to_string();
-                    let Some(tag) = latest_release_tag(&current).filter(|t| is_newer(t, &current)) else { return };
+                    // at start, then every hour while the app stays open; the switch is read each time
+                    let tag = loop {
+                        let on = handle.state::<Settings>().0.lock().unwrap()["toggles"]["check_updates"].as_bool() != Some(false);
+                        if let Some(tag) = on.then(|| latest_release_tag(&current)).flatten().filter(|t| is_newer(t, &current)) {
+                            break tag;
+                        }
+                        std::thread::sleep(UPDATE_EVERY);
+                    };
                     let version = tag.trim_start_matches('v').to_string();
                     *handle.state::<Update>().0.lock().unwrap() = Some(version.clone());
                     let _ = handle.emit("update", version.clone());

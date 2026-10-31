@@ -88,7 +88,7 @@ Three services, nothing else:
 
 - **STRATZ**, with your own free token, for the draft numbers and the in-game hints.
 - **Valve's image server**, for hero and item pictures.
-- **GitHub**, once at start, to check for a newer version. Turn off "Check for updates" in Customize to skip it.
+- **GitHub**, at start and then once an hour, to check for a newer version. Turn off "Check for updates" in Customize to skip it.
 
 Settings and your STRATZ token stay in `%APPDATA%\com.kalelooz.gggonext`. Game-feed logs are off unless you turn
 on "Save game-feed logs" for a bug report.
