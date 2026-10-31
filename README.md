@@ -19,7 +19,29 @@ game feed Valve made for tools like this. No account, no ads. Made by kalelooz.
 - **Only what your role needs.** A carry isn't called for stacks, a support isn't told to farm ancients. You can
   change every switch per role.
 - **A bit of fun.** Now and then a spoken joke, like "No TP. Enjoy the walk." Eight voices to pick from.
-  **[Listen (24 seconds)](docs/voices.mp4)**
+
+### Hear the voices
+
+Each one says a rune call and a joke. Pick yours in Customize, under Voice.
+
+<table>
+<tr>
+<td><b>Michael</b> (US)<br><video src="https://github.com/user-attachments/assets/fb25ee06-7add-407b-9b14-b20e47c51337" controls width="320"></video></td>
+<td><b>Fenrir</b> (US)<br><video src="https://github.com/user-attachments/assets/b3426fb7-5141-4301-b6d5-c687931c04e8" controls width="320"></video></td>
+</tr>
+<tr>
+<td><b>Puck</b> (US)<br><video src="https://github.com/user-attachments/assets/c2b469c5-82d6-4f30-80b6-43fb071cf225" controls width="320"></video></td>
+<td><b>Heart</b> (US)<br><video src="https://github.com/user-attachments/assets/ce55f056-55c9-463c-b3e0-35b5b4929b2c" controls width="320"></video></td>
+</tr>
+<tr>
+<td><b>Bella</b> (US)<br><video src="https://github.com/user-attachments/assets/64eb32b7-5473-4074-9fe6-15de4aaad7f4" controls width="320"></video></td>
+<td><b>Nicole</b> (US, soft)<br><video src="https://github.com/user-attachments/assets/a1ff9f0c-fd82-4d61-a64d-394ebfb5191c" controls width="320"></video></td>
+</tr>
+<tr>
+<td><b>George</b> (UK)<br><video src="https://github.com/user-attachments/assets/f51c5fd1-42b1-48c4-8dbe-c987210e4453" controls width="320"></video></td>
+<td><b>Emma</b> (UK)<br><video src="https://github.com/user-attachments/assets/b1c2f07c-e9f6-484d-acf2-9d47d77a1117" controls width="320"></video></td>
+</tr>
+</table>
 
 <table>
 <tr>
