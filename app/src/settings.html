@@ -78,10 +78,14 @@ ol{margin:0 0 14px;padding-left:20px;color:var(--soft)}
 li{margin:3px 0}
 li b{color:var(--ink);font-weight:600}
 .btn{font-weight:600;color:#1a1408;background:var(--gold);border:0;border-radius:6px;padding:8px 16px;margin:2px 0 14px}
-:root[data-theme=light] .btn{color:#fff}
+:root[data-theme=light] .btn:not(.plain){color:#fff}
 .btn.plain{color:var(--ink);background:none;border:1px solid var(--line);padding:7px 14px}
 .btn.plain:hover{border-color:var(--gold)}
 .btn:disabled{opacity:.6;cursor:default}
+/* every license the app ships with (third-party-notices.txt, made by cargo-about) */
+.notices{max-height:340px;overflow:auto;margin:0;padding:12px 14px;white-space:pre-wrap;font:12.5px/1.5 Consolas,monospace;color:var(--soft);
+  background:var(--well);border-radius:6px;user-select:text}
+.notices[hidden]{display:none}
 .paste{display:flex;gap:8px}
 .paste input{flex:1;min-width:0;font:inherit;color:var(--ink);background:var(--raise);border:1px solid var(--line);border-radius:6px;padding:7px 10px;user-select:text}
 .paste .btn{margin:0}
@@ -311,6 +315,10 @@ const render = () => {
     <section class="page" data-page="help" hidden>
       <h2>Updates and help</h2><p class="lead">Found a bug or have an idea? Use Report a problem at the top.</p>
       ${opts('help')}
+      <h3>Credits</h3>
+      <p class="p">Match data from STRATZ, hero list from dotaconstants, voices made with Kokoro, font Barlow. GG Go Next is MIT licensed and isn't affiliated with Valve.</p>
+      <button type="button" class="btn plain" id="notices" aria-expanded="false" aria-controls="noticesText">Show licenses</button>
+      <pre class="notices" id="noticesText" tabindex="0" hidden></pre>
     </section>`;
   document.getElementById('voice_pick').disabled = !document.getElementById('voice').checked;
 };
@@ -416,6 +424,15 @@ invoke('get_hotkeys').then(k => showKeys(k)).catch(() => {});
 const hide = () => { stopPicking(); win.hide(); };
 document.querySelectorAll('[data-link]').forEach(b => b.onclick = () => invoke('open_link', { to: b.dataset.link }));
 document.getElementById('close').onclick = hide;
+
+// licenses load the first time you open them, from the copy built into the app
+const noticesBtn = document.getElementById('notices'), noticesText = document.getElementById('noticesText');
+noticesBtn.onclick = async () => {
+  if (!noticesText.textContent) noticesText.textContent = await fetch('third-party-notices.txt').then(r => r.text()).catch(() => 'Licenses not found in this build.');
+  noticesText.hidden = !noticesText.hidden;
+  noticesBtn.setAttribute('aria-expanded', !noticesText.hidden);
+  noticesBtn.textContent = noticesText.hidden ? 'Show licenses' : 'Hide licenses';
+};
 
 // feedback choices: each button opens its GitHub issue form (main.rs only knows these three)
 const fbButton = document.getElementById('feedback'), fbMenu = document.getElementById('fbmenu');

@@ -83,7 +83,7 @@ settings. Nothing installs without that click.
 No. If it helps your games, you can tip at [ko-fi.com/kalelooz](https://ko-fi.com/kalelooz).
 
 **Something's wrong, or I have an idea.**
-Click **Report a problem** in Customize, or **Report a problem or idea** in the tray. It opens a short form here with your version filled in.
+Click **Report a problem** in Customize, or **Report a problem or idea** in the tray. It opens a short form here with your version filled in. Code changes aren't open yet; [CONTRIBUTING.md](CONTRIBUTING.md) has the details.
 
 **Was AI used to make it?**
 Yes. kalelooz plays Dota, designs the features, tests them in real games and decides what goes in. The code is
@@ -119,4 +119,5 @@ GitHub Actions ([build.yml](.github/workflows/build.yml)), so the download match
 Data from [STRATZ](https://stratz.com). Hero list from [dotaconstants](https://github.com/odota/dotaconstants)
 (MIT). Voices made with [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M) (Apache 2.0). Font: [Barlow](https://github.com/jpt/barlow) (SIL OFL). GG Go Next is MIT
 licensed ([LICENSE](LICENSE)) and isn't affiliated with or endorsed by Valve. Dota 2 is a trademark of Valve
-Corporation; hero and item pictures load from Valve's servers and belong to Valve.
+Corporation; hero and item pictures load from Valve's servers and belong to Valve. Every license the app ships
+with is in [third-party-notices.txt](app/src/third-party-notices.txt).

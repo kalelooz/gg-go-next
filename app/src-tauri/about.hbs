@@ -1,0 +1,36 @@
+GG Go Next: credits and licenses
+
+GG Go Next is free and open source under the MIT license (LICENSE in the repository). It is not affiliated with or endorsed by Valve. Dota 2 is a trademark of Valve Corporation; hero and item pictures load from Valve's servers and belong to Valve.
+
+Data and media
+--------------
+
+Match data: STRATZ (https://stratz.com), fetched with your own token.
+
+Hero list: generated from dotaconstants (https://github.com/odota/dotaconstants), MIT License.
+  MIT License
+
+  Copyright (c) 2017 The OpenDota Project
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Voices: recorded ahead of time with Kokoro-82M (https://huggingface.co/hexgrad/Kokoro-82M), Apache License 2.0. The full Apache 2.0 text is further down.
+
+Font: Barlow, copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow), SIL Open Font License 1.1. The full text ships next to the font files as fonts/OFL.txt.
+
+Rust libraries
+--------------
+
+The app is built with these open-source libraries. Each license is printed once, followed by the libraries that use it.
+{{#each licenses}}
+
+================================================================================
+{{{name}}}
+Used by: {{#each used_by}}{{{crate.name}}} {{{crate.version}}}{{#unless @last}}, {{/unless}}{{/each}}
+
+{{{text}}}
+{{/each}}
