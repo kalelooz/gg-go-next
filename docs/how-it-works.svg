@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="420" viewBox="0 0 880 420" font-family="Bahnschrift, 'Segoe UI', system-ui, sans-serif">
+  <title>How GG Go Next works: Dota sends its official game feed to GG Go Next on your PC, which draws the overlay. Only STRATZ, Valve's image server and GitHub are online.</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b2227"/><stop offset="1" stop-color="#090c0e"/></linearGradient>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#ffcc33"/></marker>
+    <marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="#8b989e"/></marker>
+  </defs>
+  <rect width="880" height="420" rx="10" fill="url(#bg)"/>
+  <text x="32" y="44" fill="#b0bcc2" font-size="13" font-weight="600" letter-spacing="2">HOW IT WORKS</text>
+
+  <rect x="20" y="62" width="840" height="196" rx="8" fill="none" stroke="#ffffff1c" stroke-dasharray="4 4"/>
+  <text x="36" y="84" fill="#8b989e" font-size="12" letter-spacing="1.5">ON YOUR PC</text>
+
+  <rect x="40" y="100" width="210" height="130" rx="6" fill="#00000066" stroke="#ffffff1c"/>
+  <text x="58" y="132" fill="#ffffff" font-size="18" font-weight="600">Dota 2</text>
+  <text x="58" y="158" fill="#8b989e" font-size="13">Sends game data through</text>
+  <text x="58" y="176" fill="#8b989e" font-size="13">Valve's Game State Integration,</text>
+  <text x="58" y="194" fill="#8b989e" font-size="13">the official feed for tools</text>
+  <text x="58" y="212" fill="#8b989e" font-size="13">you allow in a config file.</text>
+
+  <line x1="254" y1="165" x2="326" y2="165" stroke="#ffcc33" stroke-width="2" marker-end="url(#a)"/>
+
+  <rect x="330" y="100" width="220" height="130" rx="6" fill="#00000066" stroke="#ffcc33"/>
+  <text x="348" y="132" fill="#ffcc33" font-size="18" font-weight="600">GG Go Next</text>
+  <text x="348" y="158" fill="#8b989e" font-size="13">Listens on your own PC only</text>
+  <text x="348" y="176" fill="#8b989e" font-size="13">(127.0.0.1). Works out timers,</text>
+  <text x="348" y="194" fill="#8b989e" font-size="13">calls and hints from the feed.</text>
+  <text x="348" y="212" fill="#8b989e" font-size="13">Settings stay on your PC.</text>
+
+  <line x1="554" y1="125" x2="626" y2="125" stroke="#ffcc33" stroke-width="2" marker-end="url(#a)"/>
+  <line x1="554" y1="165" x2="626" y2="165" stroke="#ffcc33" stroke-width="2" marker-end="url(#a)"/>
+  <line x1="554" y1="205" x2="626" y2="205" stroke="#ffcc33" stroke-width="2" marker-end="url(#a)"/>
+  <text x="634" y="130" fill="#dae2e5" font-size="15"><tspan font-weight="600" fill="#ffffff">Overlay</tspan>  timers and hints</text>
+  <text x="634" y="170" fill="#dae2e5" font-size="15"><tspan font-weight="600" fill="#ffffff">Voice</tspan>  calls before runes</text>
+  <text x="634" y="210" fill="#dae2e5" font-size="15"><tspan font-weight="600" fill="#ffffff">Draft helper</tspan>  counter picks</text>
+
+  <line x1="440" y1="234" x2="440" y2="290" stroke="#8b989e" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#g)"/>
+  <text x="36" y="286" fill="#8b989e" font-size="12" letter-spacing="1.5">ONLINE, ONLY THESE THREE</text>
+  <rect x="40" y="296" width="250" height="56" rx="6" fill="#00000066" stroke="#ffffff1c"/>
+  <text x="58" y="320" fill="#ffffff" font-size="15" font-weight="600">STRATZ</text>
+  <text x="58" y="340" fill="#8b989e" font-size="13">Matchups and item numbers</text>
+  <rect x="315" y="296" width="250" height="56" rx="6" fill="#00000066" stroke="#ffffff1c"/>
+  <text x="333" y="320" fill="#ffffff" font-size="15" font-weight="600">Valve's image server</text>
+  <text x="333" y="340" fill="#8b989e" font-size="13">Hero and item pictures</text>
+  <rect x="590" y="296" width="250" height="56" rx="6" fill="#00000066" stroke="#ffffff1c"/>
+  <text x="608" y="320" fill="#ffffff" font-size="15" font-weight="600">GitHub</text>
+  <text x="608" y="340" fill="#8b989e" font-size="13">Update check at start, can be off</text>
+
+  <text x="40" y="392" fill="#ff7a6b" font-size="14" font-weight="600">Never</text>
+  <text x="92" y="392" fill="#dae2e5" font-size="14">reads game memory or game files  ·  presses keys or clicks for you  ·  sends your data to a server of ours</text>
+</svg>

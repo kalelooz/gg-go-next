@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="880" height="300" viewBox="0 0 880 300" font-family="Bahnschrift, 'Segoe UI', system-ui, sans-serif">
+  <title>Setup in four steps: install, click Set up Dota, add the launch option in Steam, and optionally add a STRATZ token.</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1b2227"/><stop offset="1" stop-color="#090c0e"/></linearGradient>
+  </defs>
+  <rect width="880" height="300" rx="10" fill="url(#bg)"/>
+  <text x="32" y="44" fill="#b0bcc2" font-size="13" font-weight="600" letter-spacing="2">SETUP, ABOUT FIVE MINUTES</text>
+  <line x1="74" y1="88" x2="698" y2="88" stroke="#ffffff1c" stroke-width="2"/>
+
+  <circle cx="74" cy="88" r="16" fill="#ffcc33"/><text x="74" y="94" text-anchor="middle" fill="#1b2227" font-size="16" font-weight="700">1</text>
+  <text x="40" y="136" fill="#ffffff" font-size="16" font-weight="600">Install</text>
+  <text x="40" y="160" fill="#8b989e" font-size="13">Run GG-Go-Next-setup.exe.</text>
+  <text x="40" y="178" fill="#8b989e" font-size="13">No admin rights needed.</text>
+  <text x="40" y="226" fill="#dae2e5" font-size="13">Customize opens</text>
+  <text x="40" y="244" fill="#dae2e5" font-size="13">by itself.</text>
+
+  <circle cx="282" cy="88" r="16" fill="#ffcc33"/><text x="282" y="94" text-anchor="middle" fill="#1b2227" font-size="16" font-weight="700">2</text>
+  <text x="248" y="136" fill="#ffffff" font-size="16" font-weight="600">Set up Dota</text>
+  <text x="248" y="160" fill="#8b989e" font-size="13">One click in Customize puts</text>
+  <text x="248" y="178" fill="#8b989e" font-size="13">the game-data file in Dota's</text>
+  <text x="248" y="196" fill="#8b989e" font-size="13">folder.</text>
+  <text x="248" y="226" fill="#45bb5f" font-size="13">"Dota has the file it</text>
+  <text x="248" y="244" fill="#45bb5f" font-size="13">needs"</text>
+
+  <circle cx="490" cy="88" r="16" fill="#ffcc33"/><text x="490" y="94" text-anchor="middle" fill="#1b2227" font-size="16" font-weight="700">3</text>
+  <text x="456" y="136" fill="#ffffff" font-size="16" font-weight="600">Launch option</text>
+  <text x="456" y="160" fill="#8b989e" font-size="13">Steam, Dota 2, Properties:</text>
+  <text x="456" y="178" fill="#dae2e5" font-size="13" font-family="Consolas, monospace">-gamestateintegration</text>
+  <text x="456" y="196" fill="#8b989e" font-size="13">In Dota: Borderless Window.</text>
+  <text x="456" y="226" fill="#45bb5f" font-size="13">"Dota is connected"</text>
+
+  <circle cx="698" cy="88" r="16" fill="#1b2227" stroke="#ffcc33" stroke-width="2"/><text x="698" y="94" text-anchor="middle" fill="#ffcc33" font-size="16" font-weight="700">4</text>
+  <text x="664" y="136" fill="#ffffff" font-size="16" font-weight="600">STRATZ token <tspan fill="#8b989e" font-weight="400" font-size="13">optional</tspan></text>
+  <text x="664" y="160" fill="#8b989e" font-size="13">Customize opens stratz.com/api.</text>
+  <text x="664" y="178" fill="#8b989e" font-size="13">Log in with Steam, paste the</text>
+  <text x="664" y="196" fill="#8b989e" font-size="13">Default Token.</text>
+  <text x="664" y="226" fill="#45bb5f" font-size="13">"Counter picks and</text>
+  <text x="664" y="244" fill="#45bb5f" font-size="13">hints are on"</text>
+
+  <text x="40" y="280" fill="#8b989e" font-size="13">The green lines are what Customize shows when a step worked.</text>
+</svg>

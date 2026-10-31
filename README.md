@@ -1,9 +1,11 @@
 # GG Go Next
 
 A free Windows overlay for Dota 2: map timers, voice calls, item and skill hints, and a draft helper.
-Made by kalelooz.
+Made by kalelooz. Free and open source, no account, no ads.
 
-![The overlay during a game: rune, Roshan, Tormentor and glyph timers, then level-up and item hints](docs/screenshot.jpg)
+**[Download](../../releases/latest)** · [How it works](#how-it-works) · [Install](#install) · [FAQ](#faq)
+
+<img src="docs/screenshot.jpg" width="460" alt="The overlay: rune, Roshan, Tormentor and glyph timers, then level-up and item hints">
 
 ## What it does
 
@@ -19,9 +21,22 @@ Made by kalelooz.
   drag picks into Pos 1 to 5, and see which heroes do well against the enemy draft and in your lane, from
   Divine and Immortal games.
 
+<table>
+<tr>
+<td width="50%"><img src="docs/draft-before.jpg" alt="Draft helper before any pick: the best soft support heroes this patch, by win rate in Divine and Immortal games"></td>
+<td width="50%"><img src="docs/draft-helper.jpg" alt="Draft helper during a draft: four enemy heroes in, with Warlock, Bane and Shadow Demon suggested and how each does against every enemy and in the lane"></td>
+</tr>
+<tr>
+<td><b>Before the draft.</b> Pick your role and see your own best heroes there, or the best ones this patch.</td>
+<td><b>During the draft.</b> Type the enemy picks. Suggestions show how each hero does against every enemy and in your lane.</td>
+</tr>
+</table>
+
 Press **Ctrl+Shift+D** in game to open Customize, and **Ctrl+Shift+S** to hide or show the overlay (handy while the shop is open). You can change both under Hotkeys in Customize. The tray icon has the draft helper, voice choice and your role.
 
-## What it reads, and what it never does
+## How it works
+
+![How it works: Dota sends its official game feed to GG Go Next on your PC, which shows the overlay, voice calls and draft helper. Online it only talks to STRATZ, Valve's image server and GitHub. It never reads game memory or files, never presses keys, and has no server of its own.](docs/how-it-works.svg)
 
 - It only reads Valve's **Game State Integration**, the official feed Dota sends to local apps you allow in a
   config file.
@@ -41,6 +56,8 @@ Press **Ctrl+Shift+D** in game to open Customize, and **Ctrl+Shift+S** to hide o
 
 ## Install
 
+![Setup in four steps: install, click Set up Dota in Customize, add -gamestateintegration in Steam and pick Borderless Window, then optionally paste a STRATZ token. Customize shows a green line when each step worked.](docs/setup.svg)
+
 1. Download `GG-Go-Next-setup.exe` from [Releases](../../releases) and run it. The release notes list its SHA-256;
    in PowerShell, `Get-FileHash GG-Go-Next-setup.exe` should print the same value. If you'd rather not install
    anything, `GG-Go-Next.exe` on the same page runs as it is.
@@ -55,6 +72,10 @@ Press **Ctrl+Shift+D** in game to open Customize, and **Ctrl+Shift+S** to hide o
 6. For the draft helper's counter picks and the in-game hints, add a free STRATZ token. Customize's **STRATZ token**
    section walks you through it: **Open stratz.com/api**, log in with Steam, copy the **Default Token**, paste it and
    click Save. It checks the token with STRATZ before saving it.
+
+![Customize: Dota setup and STRATZ token at the top, both green, the role switches below, and a live preview of the overlay on the right](docs/customize.jpg)
+
+Customize, after setup. Every switch updates the preview on the right as you flip it.
 
 The files aren't code-signed, so Windows may show a SmartScreen warning. Pick "More info", then "Run anyway".
 
@@ -89,7 +110,7 @@ GitHub Actions ([.github/workflows/build.yml](.github/workflows/build.yml)), so 
 | `app/src/` | The windows (`index.html` overlay, `draft.html`, `settings.html`, `topbar.html`, `skillbar.html`) and the game logic they share (`timers.js`, `roles.js`, `picks.js`, ...). Each `*.test.mjs` tests the file it's named after. |
 | `app/src-tauri/` | The Rust side: listens for the game feed, runs the tray menu, and calls STRATZ. |
 | `app/src/voice/` | The recorded voice clips, one folder per voice. |
-| `docs/` | The game-feed config and the screenshot at the top of this page. |
+| `docs/` | The game-feed config, plus the screenshots and diagrams on this page. |
 | `tools/` | Scripts that rebuild the hero data, neutral item tables and voice clips. |
 
 ## FAQ
