@@ -101,7 +101,7 @@ body{font-family:Bahnschrift,'Segoe UI',sans-serif;font-stretch:semi-condensed;c
 
 <script type="module">
 import { SCHEDULES, untilNext, untilStack, fmt, roshan, pits, AEGIS, TORMENTOR_AT,
-  buildingLost, newGlyphs, glyphLoss, glyphUsed, glyphIn, dayNight, tpStatus, buybackStatus, courierStatus, newWards, trackWards, wardsLeft, wardLine, pickQuip, NO_TP, BUYBACK_SHORT, ROSH_LONELY } from './timers.js';
+  buildingLost, newGlyphs, glyphLoss, glyphUsed, glyphIn, dayNight, tpStatus, buybackStatus, courierStatus, newWards, trackWards, wardsLeft, wardLine, pickQuip, quipAt, DARK_MAP, NO_TP, BUYBACK_SHORT, ROSH_LONELY } from './timers.js';
 import { itemsNow } from './items.js';
 import { ROLE_NAMES, partOn, laneAt, guessRole } from './roles.js';
 import { matchupHints } from './matchups.js';
@@ -191,6 +191,10 @@ function remind(id, text, part, clip, t, value) {
   queue.push({ clip, text });
   playNext();
 }
+// The joke on screen, spoken in its own clip (joke-<id>-<n> from make_voice.py). Under the Tips voice switch, or Roshan's.
+function joke(id, lines, t, part = 'tips') {
+  if (settings.jokes) remind('joke-' + id, '', part, `joke-${id}-${quipAt(lines.length, t)}`, t);
+}
 function say(key, text, part, clip, urgent = false) {
   if (spoken.has(key)) return;
   spoken.add(key);
@@ -252,6 +256,7 @@ function tick() {
   if (r.phase === 'dead') setRow('roshan', p.rosh + ', ' + r.text, false, 'dim');
   else if (moving) setRow('roshan', 'moves ' + p.tormentor + ' in ' + fmt(p.swapIn), true);
   else setRow('roshan', p.rosh + ', ' + (settings.jokes && roshanAt == null && t >= 1200 ? pickQuip(ROSH_LONELY, t) : r.text), r.phase === 'maybe', r.phase === 'up' ? 'good' : null);
+  if (r.phase !== 'dead' && !moving && roshanAt == null && t >= 1200) joke('rosh', ROSH_LONELY, t, 'roshan');
   if (moving && r.phase !== 'dead') say('rosh-move' + Math.round(t + p.swapIn), 'Roshan moves to the ' + p.tormentor + ' pit in 30 seconds', 'roshan', 'rosh-move-' + p.tormentor);
   if (roshanAt != null) {
     if (r.phase === 'maybe') say('rosh-maybe' + roshanAt, 'Roshan can spawn now, ' + p.rosh + ' pit', 'roshan', 'rosh-maybe-' + p.rosh);
@@ -295,12 +300,14 @@ function renderStatus(t) {
     : tp.state === 'ok' ? chip('ok', 'tp', 'TP ready')
     : tp.state === 'cd' ? chip('off', 'tp', `TP ${fmt(tp.cd)}`)
     : chip('bad', 'tp', settings.jokes ? pickQuip(NO_TP, t) : 'No TP');
+  if (me?.items && tp.state !== 'ok' && tp.state !== 'cd' && t >= 60) joke('tp', NO_TP, t);
   // the feed's buyback time is in game time, which runs ahead of the clock by the pre-game
   const bb = buybackStatus(me?.hero, me?.gold, t + map.game_time - map.clock_time);
   document.getElementById('bb').innerHTML = !bb ? ''
     : bb.state === 'ok' ? chip('ok', 'buyback', 'Buyback ready')
     : bb.state === 'cd' ? chip('off', 'buyback', `Buyback ${fmt(bb.cd)}`)
     : chip('bad', 'buyback', settings.jokes ? pickQuip(BUYBACK_SHORT, t)(bb.short) : `Buyback: ${bb.short} short`);
+  if (bb && bb.state !== 'ok' && bb.state !== 'cd') joke('buyback', BUYBACK_SHORT, t);
   // only shown while it's dead; no courier icon extracted yet
   const cr = courierStatus(couriers, myId);
   document.getElementById('cr').innerHTML = cr?.state === 'dead' ? chip('bad', null, `Courier back in ${fmt(cr.in)}`) : '';
@@ -527,6 +534,8 @@ function renderWards(t) {
   fitRole('wards');
   let { kinds, quip } = wardLine(wardsLeft(wards, t), t);
   if (!settings.jokes) quip = kinds.length ? null : 'No wards up';
+  // the first wards go up in the first minutes, so a dark map only counts as a joke after five
+  if (!kinds.length && t >= 300) joke('dark', DARK_MAP, t);
   const NAME = { observer: ['observer', 'observers'], sentry: ['sentry', 'sentries'] };
   el.innerHTML = kinds.map(k => `<span><b>${k.count} ${NAME[k.kind][k.count > 1 ? 1 : 0]}</b>, next out
     <span class="${k.next <= 30 ? 'due' : ''}">${fmt(k.next)}</span></span>`).join('<span>·</span>')

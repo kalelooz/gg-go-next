@@ -8,6 +8,7 @@ GitHub release uses the same text, so keep every change on one line that starts 
 - **STRATZ token in Customize.** A new section explains what the token is for, opens stratz.com/api for you and checks the token before saving it, so you don't have to wait for a draft to set it up.
 - **Strong picks before the draft.** Pick your role in the draft helper and, before any hero is picked, it lists your best heroes in that role and the best heroes in that role this patch (Divine and Immortal games).
 - Each suggested hero links to its matchups on STRATZ.
+- **Spoken jokes.** With Jokes and voice alerts on, a few of the jokes are spoken too: no TP, short on buyback gold, a dark map, a lonely Roshan. Each one at most once or twice a game.
 - **How it works.** A button at the top of Customize shows the setup steps and what the app reads and sends, as two pictures.
 - **Ctrl+Shift+S hides and shows the overlay**, so it stays out of the way while the shop is open. The tray tick follows it.
 - **Change both hotkeys in Customize.** Click one and press a new combination. It tells you if another program already uses it, and it won't take a key Dota needs.

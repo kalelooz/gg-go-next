@@ -10,6 +10,11 @@ export const POLICY = {
   'farm-ready': { max: 1 },
   'farm-up': { max: 4, every: 300 },
   'farm-stack': { max: 5, every: 120 },
+  // spoken jokes (Jokes on): rare, so they stay funny
+  'joke-tp': { max: 2, every: 600 },
+  'joke-buyback': { max: 2, every: 600 },
+  'joke-dark': { max: 2, every: 900 },
+  'joke-rosh': { max: 1 },
 };
 // no two advice lines within this many game seconds of each other; a held-back line tries again later
 export const GAP = 45;

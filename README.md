@@ -14,6 +14,8 @@ Made by kalelooz. Free and open source, no account, no ads.
   (currently 7.41f).
 - **Voice calls** 20 seconds before runes, at stack time, and before Roshan changes pit. Each role has its own
   Show and Voice switches, so a carry isn't called for stacks and a support isn't told to farm ancients.
+  With Jokes on, it also cracks the odd joke, like "No TP. Enjoy the walk." Eight voices to pick from.
+  **[Listen to them (24-second video)](docs/voices.mp4)**.
 - **Top strip** with day and night, TP, buyback (and how much gold you're short) and your courier.
 - **Hints** at level-up (which ability most good players skill next), items that win more in your game, and
   neutral item picks.

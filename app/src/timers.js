@@ -187,7 +187,8 @@ export const NO_OBSERVERS = [
   'No observers. Vision is a team sport.',
 ];
 // one joke per 3 minutes of game clock, so a line doesn't flicker between jokes
-export const pickQuip = (lines, t) => lines[Math.floor(Math.max(0, t) / 180) % lines.length];
+export const quipAt = (n, t) => Math.floor(Math.max(0, t) / 180) % n;
+export const pickQuip = (lines, t) => lines[quipAt(lines.length, t)];
 export const NO_TP = ['No TP, enjoy the walk', 'No TP. Walking it is', 'No TP, legs only'];
 export const BUYBACK_SHORT = [n => `Buyback: ${n} short, don't die`, n => `Buyback: ${n} short, play safe`];
 // Roshan alive and never killed after 20:00
