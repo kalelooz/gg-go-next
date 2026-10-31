@@ -534,8 +534,9 @@ function renderWards(t) {
   fitRole('wards');
   let { kinds, quip } = wardLine(wardsLeft(wards, t), t);
   if (!settings.jokes) quip = kinds.length ? null : 'No wards up';
-  // the first wards go up in the first minutes, so a dark map only counts as a joke after five
-  if (!kinds.length && t >= 300) joke('dark', DARK_MAP, t);
+  // no wards early is normal, so the dark-map joke (shown and spoken) waits until 15:00
+  if (!kinds.length && t < 900) quip = 'No wards up';
+  else if (!kinds.length) joke('dark', DARK_MAP, t);
   const NAME = { observer: ['observer', 'observers'], sentry: ['sentry', 'sentries'] };
   el.innerHTML = kinds.map(k => `<span><b>${k.count} ${NAME[k.kind][k.count > 1 ? 1 : 0]}</b>, next out
     <span class="${k.next <= 30 ? 'due' : ''}">${fmt(k.next)}</span></span>`).join('<span>·</span>')
