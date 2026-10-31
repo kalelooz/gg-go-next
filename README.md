@@ -5,7 +5,9 @@ game feed Valve made for tools like this. No account, no ads. Made by kalelooz.
 
 **[Download for Windows](../../releases/latest)** · [Is it safe?](#is-it-safe) · [Setup](#setup) · [FAQ](#faq)
 
-<img src="docs/screenshot.jpg" width="460" alt="The overlay: rune, Roshan, Tormentor and glyph timers, then level-up and item hints">
+<a href="docs/tour.mp4"><img src="docs/tour.webp" width="720" alt="A 45-second tour: the overlay's timers, item and skill hints, spoken calls, the draft helper before and during a draft, and Customize"></a>
+
+[Watch it with sound (45 seconds)](docs/tour.mp4)
 
 ## What you get
 
