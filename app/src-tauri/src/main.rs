@@ -375,6 +375,17 @@ fn open_feedback(app: AppHandle, kind: String) {
     open_feedback_form(&kind, &app.package_info().version.to_string());
 }
 
+// Customize's GitHub and coffee buttons. Only these two addresses, so a webview can't open anything else.
+#[tauri::command]
+fn open_link(to: String) {
+    let url = match to.as_str() {
+        "github" => "https://github.com/kalelooz/gg-go-next",
+        "coffee" => "https://ko-fi.com/kalelooz",
+        _ => return,
+    };
+    let _ = std::process::Command::new("explorer").arg(url).spawn();
+}
+
 // One-click Dota setup: find Dota through Steam and write the GSI file there. That file is all Valve asks for;
 // the -gamestateintegration launch option stays a manual step in Steam.
 const GSI_CFG: &str = include_str!("../../../docs/gamestate_integration_gggonext.cfg");
@@ -531,7 +542,7 @@ fn main() {
                 })
                 .build(),
         )
-        .invoke_handler(tauri::generate_handler![stratz, load_token, save_token, get_settings, set_setting, get_hotkeys, record_hotkey, set_hotkey, get_update, open_releases, is_installed, install_update, whats_new, open_feedback, open_stratz, dota_setup])
+        .invoke_handler(tauri::generate_handler![open_link, stratz, load_token, save_token, get_settings, set_setting, get_hotkeys, record_hotkey, set_hotkey, get_update, open_releases, is_installed, install_update, whats_new, open_feedback, open_stratz, dota_setup])
         .setup(|app| {
             let saved = load_settings(app.handle());
             app.manage(Settings(Mutex::new(saved.clone())));

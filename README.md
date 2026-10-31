@@ -1,27 +1,23 @@
 # GG Go Next
 
-A free Windows overlay for Dota 2: map timers, voice calls, item and skill hints, and a draft helper.
-Made by kalelooz. Free and open source, no account, no ads.
+A free Dota 2 overlay for Windows. Timers, voice calls, item and skill hints, and a draft helper, all from the
+game feed Valve made for tools like this. No account, no ads. Made by kalelooz.
 
-**[Download](../../releases/latest)** · [How it works](#how-it-works) · [Install](#install) · [FAQ](#faq)
+**[Download for Windows](../../releases/latest)** · [Is it safe?](#is-it-safe) · [Setup](#setup) · [FAQ](#faq)
 
 <img src="docs/screenshot.jpg" width="460" alt="The overlay: rune, Roshan, Tormentor and glyph timers, then level-up and item hints">
 
-## What it does
+## What you get
 
-- **Timers** for power, bounty and water runes, wisdom shrines, lotus pools, camp stacks, Roshan's pit and
-  respawn window, Aegis, Tormentor, the enemy glyph and your team's wards. Rules come from Valve's patch notes
-  (currently 7.41f).
-- **Voice calls** 20 seconds before runes, at stack time, and before Roshan changes pit. Each role has its own
-  Show and Voice switches, so a carry isn't called for stacks and a support isn't told to farm ancients.
-  With Jokes on, it also cracks the odd joke, like "No TP. Enjoy the walk." Eight voices to pick from.
-  **[Listen to them (24-second video)](docs/voices.mp4)**.
-- **Top strip** with day and night, TP, buyback (and how much gold you're short) and your courier.
-- **Hints** at level-up (which ability most good players skill next), items that win more in your game, and
-  neutral item picks.
-- **Draft helper** in its own window. Type any hero, including old names and short forms (Wisp, Furion, AM),
-  drag picks into Pos 1 to 5, and see which heroes do well against the enemy draft and in your lane, from
+- **Never miss a rune or a stack.** Timers for runes, shrines, lotus pools, stacks, Roshan, Aegis, Tormentor, the
+  enemy glyph and your wards, with a voice call 20 seconds before.
+- **Pick better.** The draft helper shows which heroes do well against the enemy draft and in your lane, from
   Divine and Immortal games.
+- **Buy and skill better.** Items that win more right now, and the next skill most good players take.
+- **Only what your role needs.** A carry isn't called for stacks, a support isn't told to farm ancients. You can
+  change every switch per role.
+- **A bit of fun.** Now and then a spoken joke, like "No TP. Enjoy the walk." Eight voices to pick from.
+  **[Listen (24 seconds)](docs/voices.mp4)**
 
 <table>
 <tr>
@@ -29,120 +25,84 @@ Made by kalelooz. Free and open source, no account, no ads.
 <td width="50%"><img src="docs/draft-helper.jpg" alt="Draft helper during a draft: four enemy heroes in, with Warlock, Bane and Shadow Demon suggested and how each does against every enemy and in the lane"></td>
 </tr>
 <tr>
-<td><b>Before the draft.</b> Pick your role and see your own best heroes there, or the best ones this patch.</td>
-<td><b>During the draft.</b> Type the enemy picks. Suggestions show how each hero does against every enemy and in your lane.</td>
+<td><b>Before the draft:</b> your best heroes for your role, or the best ones this patch.</td>
+<td><b>During the draft:</b> type the enemy picks and see who counters them.</td>
 </tr>
 </table>
 
-Press **Ctrl+Shift+D** in game to open Customize, and **Ctrl+Shift+S** to hide or show the overlay (handy while the shop is open). You can change both under Hotkeys in Customize. The tray icon has the draft helper, voice choice and your role.
-
-## How it works
+## Is it safe?
 
 ![How it works: Dota sends its official game feed to GG Go Next on your PC, which shows the overlay, voice calls and draft helper. Online it only talks to STRATZ, Valve's image server and GitHub. It never reads game memory or files, never presses keys, and has no server of its own.](app/src/guide/how-it-works.svg)
 
-- It only reads Valve's **Game State Integration**, the official feed Dota sends to local apps you allow in a
-  config file.
+- It only uses Valve's **Game State Integration**, the official feed Dota sends to apps you allow.
 - It never reads game memory or game files, and never presses keys or clicks for you.
-- The draft helper only knows the heroes you type in.
+- No account and no server of ours. Your settings stay on your PC.
 
-## Privacy
-
-- No account, no login, no server of ours. Everything runs on your PC.
-- Three online services, nothing else:
-  - **STRATZ**, with your own free token, for the draft numbers and the in-game hints.
-  - **Valve's image server**, for item and hero pictures.
-  - **GitHub**, asked once at start whether a newer version is out. Turn off "Check for updates" in Customize to
-    skip it. When you click Update now, the new setup also comes from GitHub.
-- Your settings and STRATZ token stay in `%APPDATA%\com.kalelooz.gggonext`.
-- Game-feed logs are off. Turn on "Save game-feed logs" in Customize only if you want to send a bug report.
-
-## Install
+## Setup
 
 ![Setup in four steps: install, click Set up Dota in Customize, add -gamestateintegration in Steam and pick Borderless Window, then optionally paste a STRATZ token. Customize shows a green line when each step worked.](app/src/guide/setup.svg)
 
-1. Download `GG-Go-Next-setup.exe` from [Releases](../../releases) and run it. The release notes list its SHA-256;
-   in PowerShell, `Get-FileHash GG-Go-Next-setup.exe` should print the same value. If you'd rather not install
-   anything, `GG-Go-Next.exe` on the same page runs as it is.
-2. Start GG Go Next from the Start menu. It lives in the tray, and the first time it opens Customize.
-3. In Customize, click **Set up Dota**. It finds Dota through Steam and puts
-   [gamestate_integration_gggonext.cfg](docs/gamestate_integration_gggonext.cfg) in Dota's folder. If it can't find
-   Dota, copy that file by hand into `Steam\steamapps\common\dota 2 beta\game\dota\cfg\gamestate_integration\`
-   (create the last folder if it's missing).
-4. In Steam, right-click Dota 2, then Properties, and add `-gamestateintegration` to Launch Options. Customize shows
-   "Dota is connected" once this works.
-5. In Dota's video settings, pick **Borderless Window**, so the overlay can sit on top of the game.
-6. For the draft helper's counter picks and the in-game hints, add a free STRATZ token. Customize's **STRATZ token**
-   section walks you through it: **Open stratz.com/api**, log in with Steam, copy the **Default Token**, paste it and
-   click Save. It checks the token with STRATZ before saving it.
+1. Download and run **[GG-Go-Next-setup.exe](../../releases/latest)**. Customize opens by itself.
+2. Click **Set up Dota**.
+3. In Steam, right-click Dota 2, then Properties, and add `-gamestateintegration` to Launch Options. In Dota's video
+   settings, pick **Borderless Window**.
+4. For the draft helper and hints, add a free STRATZ token. Customize walks you through it.
 
-![Customize: Dota setup and STRATZ token at the top, both green, the role switches below, and a live preview of the overlay on the right](docs/customize.jpg)
-
-Customize, after setup. Every switch updates the preview on the right as you flip it.
-
-The files aren't code-signed, so Windows may show a SmartScreen warning. Pick "More info", then "Run anyway".
-
-**Updates:** when a new version is out, the tray menu and Customize show it with an **Update now** button. One click
-downloads the new setup, checks its signature, installs it with your settings kept and opens the app again. Nothing
-installs without that click. Versions before 0.4.0, and the single exe, open the download page instead. After an update, a
-"What's new" window lists the changes once; every version is in [CHANGELOG.md](CHANGELOG.md). To get an email
-instead, click **Watch**, then **Custom**, then **Releases** at the top of this page.
-
-**Uninstall:** remove GG Go Next in Windows Settings, then Apps, and delete the `.cfg` file from step 3. Without the
-installer, delete the exe and the `com.kalelooz.gggonext` folders in `%APPDATA%` and `%LOCALAPPDATA%`.
-
-## Build it yourself
-
-Needs Node.js 22 or newer and Rust (stable).
-
-```
-cd app
-npm ci
-npm test
-npx tauri build
-```
-
-The exe lands in `app/src-tauri/target/release/gg-go-next.exe` and the installer in
-`app/src-tauri/target/release/bundle/nsis/`. Release builds come from the same steps on
-GitHub Actions ([.github/workflows/build.yml](.github/workflows/build.yml)), so the download matches this code.
-
-## Where things are
-
-| Folder | What's in it |
-|---|---|
-| `app/src/` | The windows (`index.html` overlay, `draft.html`, `settings.html`, `topbar.html`, `skillbar.html`) and the game logic they share (`timers.js`, `roles.js`, `picks.js`, ...). Each `*.test.mjs` tests the file it's named after. |
-| `app/src-tauri/` | The Rust side: listens for the game feed, runs the tray menu, and calls STRATZ. |
-| `app/src/voice/` | The recorded voice clips, one folder per voice. |
-| `docs/` | The game-feed config and the screenshots on this page. The two diagrams live in `app/src/guide/`, so Customize shows the same ones. |
-| `tools/` | Scripts that rebuild the hero data, neutral item tables and voice clips. |
+In game, **Ctrl+Shift+D** opens Customize and **Ctrl+Shift+S** hides the overlay. The **How it works** button in
+Customize shows these pictures again.
 
 ## FAQ
 
-**Can I get banned for this?**
-It uses only the feed Valve built for tools like this, and doesn't touch the game itself. Nobody outside Valve
-can promise anything, but it does nothing Valve's anti-cheat looks for.
+**Can I get banned?**
+It only uses the feed Valve built for tools like this and doesn't touch the game. Nobody outside Valve can promise
+anything, but it does nothing Valve's anti-cheat looks for.
+
+**Windows says the file might be unsafe.**
+The files aren't code-signed yet, so SmartScreen warns about them. Pick "More info", then "Run anyway". Each release
+lists the file's SHA-256, so you can check it's the real one with `Get-FileHash` in PowerShell.
+
+**How do updates work?**
+When a new version is out, Customize and the tray show **Update now**. One click installs it and keeps your
+settings. Nothing installs without that click.
+
+**Does it cost anything?**
+No. If it helps your games, you can tip at [ko-fi.com/kalelooz](https://ko-fi.com/kalelooz).
+
+**Something's wrong, or I have an idea.**
+Click **Report a problem or idea** in Customize or the tray. It opens a short form here with your version filled in.
 
 **Was AI used to make it?**
 Yes. kalelooz plays Dota, designs the features, tests them in real games and decides what goes in. The code is
 written with Claude Code.
 
-**Something's wrong, or I have an idea.**
-Click **Report a problem or idea** at the top of Customize (or in the tray menu) and pick bug, idea or question.
-It opens a short form here on GitHub with your app version filled in; you need a free GitHub account. You can also
-start from [New issue](../../issues/new/choose).
+**How do I uninstall it?**
+Remove GG Go Next in Windows Settings, then Apps, and delete `gamestate_integration_gggonext.cfg` from Dota's
+`game\dota\cfg\gamestate_integration` folder.
 
-## Support
+<details>
+<summary><b>What it sends online</b></summary>
 
-GG Go Next is free. If it helps your games, you can tip at [ko-fi.com/kalelooz](https://ko-fi.com/kalelooz).
+Three services, nothing else:
 
-## Credits
+- **STRATZ**, with your own free token, for the draft numbers and the in-game hints.
+- **Valve's image server**, for hero and item pictures.
+- **GitHub**, once at start, to check for a newer version. Turn off "Check for updates" in Customize to skip it.
 
-- Draft and item data: [STRATZ](https://stratz.com)
-- Hero list: [dotaconstants](https://github.com/odota/dotaconstants) by OpenDota (MIT)
-- Voices: [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M) (Apache 2.0)
+Settings and your STRATZ token stay in `%APPDATA%\com.kalelooz.gggonext`. Game-feed logs are off unless you turn
+on "Save game-feed logs" for a bug report.
+</details>
 
-## License and disclaimer
+<details>
+<summary><b>Build it yourself</b></summary>
 
-MIT, see [LICENSE](LICENSE).
+Needs Node.js 22+ and Rust. `cd app`, `npm ci`, `npm test`, `npx tauri build`. Releases are built the same way on
+GitHub Actions ([build.yml](.github/workflows/build.yml)), so the download matches this code. Every change is in
+[CHANGELOG.md](CHANGELOG.md).
+</details>
 
-GG Go Next isn't affiliated with or endorsed by Valve. Dota 2 is a trademark of Valve Corporation. Item and hero
-pictures load from Valve's servers and belong to Valve.
+---
+
+Data from [STRATZ](https://stratz.com). Hero list from [dotaconstants](https://github.com/odota/dotaconstants)
+(MIT). Voices made with [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M) (Apache 2.0). GG Go Next is MIT
+licensed ([LICENSE](LICENSE)) and isn't affiliated with or endorsed by Valve. Dota 2 is a trademark of Valve
+Corporation; hero and item pictures load from Valve's servers and belong to Valve.
