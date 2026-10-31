@@ -50,7 +50,8 @@ header h1{flex:1;margin:0;font-size:17px;font-weight:600;white-space:nowrap}
 #update b{font-weight:600}
 #update .btn{margin:0}
 
-main{flex:1;display:grid;grid-template-columns:184px 1fr 400px;min-height:0}
+main{flex:1;display:grid;grid-template-columns:184px 1fr 400px;grid-template-rows:auto 1fr;min-height:0}
+nav{grid-row:span 2}
 /* left: the five pages */
 nav{display:flex;flex-direction:column;gap:2px;padding:16px 10px 14px;background:var(--side);border-right:1px solid var(--line)}
 nav button{display:flex;align-items:center;gap:10px;padding:9px 12px;border:0;border-radius:6px;background:none;color:var(--soft);font-size:15px;font-weight:500;text-align:left}
@@ -88,6 +89,14 @@ select{font:inherit;color:var(--ink);background:var(--raise);border:1px solid va
 .field{display:flex;align-items:center;gap:12px;margin:0 0 16px}
 .field span{color:var(--soft)}
 
+/* setup status above every page but Setup itself: green when it's done, gold with what's left */
+#status{grid-column:2/4;display:flex;align-items:center;gap:10px;margin:16px 18px 0 22px;padding:10px 14px;border-radius:8px;font-weight:500;
+  color:var(--on);background:color-mix(in srgb,var(--on) 13%,transparent)}
+#status[hidden]{display:none}
+#status.todo{color:var(--gold);background:color-mix(in srgb,var(--gold) 13%,transparent)}
+#status::before{content:'';flex:none;width:8px;height:8px;border-radius:50%;background:currentColor}
+#status button{margin-left:auto;white-space:nowrap;padding:0;border:0;background:none;color:var(--soft);font-size:14px;text-decoration:underline;text-underline-offset:3px}
+#status button:hover{color:var(--hi)}
 /* switches: the real checkbox, drawn as a switch, so keyboard and screen readers still work */
 .sw{appearance:none;flex:none;width:34px;height:20px;margin:0;border-radius:10px;background:var(--line);position:relative;cursor:pointer;transition:background .2s}
 .sw::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--soft);transition:transform .2s,background .2s}
@@ -166,6 +175,7 @@ select{font:inherit;color:var(--ink);background:var(--raise);border:1px solid va
     <button type="button" data-page="help">Updates and help</button>
     <div class="foot"><span id="keyHint">Ctrl+Shift+D opens this in game</span><br><span id="ver"></span></div>
   </nav>
+  <div id="status" role="status" hidden><span id="statusText"></span><button type="button" id="statusGo">Setup</button></div>
   <div id="list"></div>
   <aside id="preview">
     <div class="stage"><iframe id="demo" src="index.html?demo" title="Overlay preview"></iframe></div>
@@ -315,6 +325,7 @@ const showPage = page => {
   navButtons.forEach(b => b.dataset.page === page ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
   list.scrollTop = 0;
   store.set('page', page);
+  document.getElementById('status').hidden = page === 'setup' || !document.getElementById('statusText').textContent;
 };
 navButtons.forEach(b => b.onclick = () => showPage(b.dataset.page));
 showPage(store.get('page') || 'setup');
@@ -427,14 +438,25 @@ document.addEventListener('keydown', e => {
   else if (!guide.hidden) { showGuide(false); e.stopPropagation(); }
 });
 
-// Setup's dot in the sidebar: green once Dota has its file and a STRATZ token is saved
-const done = { file: false, token: false };
+// Setup's dot in the sidebar and the status card above the other pages: done once Dota has its file and a STRATZ
+// token is saved; "connected" only shows once Dota has sent something
+const done = { file: false, token: false, live: false }, known = new Set();
 const markSetup = (k, v) => {
-  done[k] = v;
+  done[k] = v; known.add(k);
   const dot = document.getElementById('setupDot'), ok = done.file && done.token;
   dot.classList.toggle('ok', ok);
   dot.title = ok ? 'Done' : 'A step is left';
+  // wait for both answers, so it doesn't flash "add a token" on the way to green
+  if (!known.has('file') || !known.has('token')) return;
+  const left = [!done.file && 'Dota needs its game-data file', !done.token && 'add a STRATZ token for counter picks and hints'].filter(Boolean);
+  document.getElementById('status').classList.toggle('todo', !ok);
+  document.getElementById('statusText').textContent = ok
+    ? (done.live ? 'Dota is connected and your STRATZ token works.' : 'Setup is done. Start Dota and it connects by itself.')
+    : left.join(', and ').replace(/^./, c => c.toUpperCase()) + '.';
+  document.getElementById('statusGo').textContent = ok ? 'Setup' : 'Finish setup';
+  document.getElementById('status').hidden = store.get('page') === 'setup';
 };
+document.getElementById('statusGo').onclick = () => showPage('setup');
 
 // Dota setup: main.rs finds Dota through Steam; ready means the file is there and current
 const gsiFile = document.getElementById('gsiFile'), gsiInstall = document.getElementById('gsiInstall');
@@ -456,6 +478,7 @@ window.__TAURI__.event.listen('gsi', () => {
   live.className = 'p ok';
   live.textContent = 'Dota is connected.';
   document.getElementById('gsiLaunch').hidden = true;
+  markSetup('live', true);
 });
 
 // STRATZ token: checked with one small query before it's saved, then shared with the draft helper

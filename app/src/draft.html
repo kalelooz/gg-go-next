@@ -16,9 +16,12 @@
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{margin:0;height:100%}
-body{background:var(--bg);color:var(--ink);font:14px/1.4 Bahnschrift,'Segoe UI',sans-serif;display:flex;flex-direction:column;overflow:hidden;user-select:none}
-/* Dota's UI type is condensed; Bahnschrift's width axis gets close without loading a font */
-h1,h2,.slot .n,.pick b{font-stretch:semi-condensed}
+/* Barlow ships with the app (fonts/, SIL Open Font License), the same font as Customize */
+@font-face{font-family:Barlow;font-weight:400;src:url(fonts/barlow-400.woff2) format('woff2')}
+@font-face{font-family:Barlow;font-weight:500;src:url(fonts/barlow-500.woff2) format('woff2')}
+@font-face{font-family:Barlow;font-weight:600;src:url(fonts/barlow-600.woff2) format('woff2')}
+@font-face{font-family:Barlow;font-weight:700;src:url(fonts/barlow-700.woff2) format('woff2')}
+body{background:var(--bg);color:var(--ink);font:15px/1.4 Barlow,'Segoe UI',sans-serif;display:flex;flex-direction:column;overflow:hidden;user-select:none}
 button{font:inherit;color:inherit;background:var(--raised);border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer}
 button:hover{border-color:var(--edge)}
 :focus-visible{outline:2px solid var(--accent);outline-offset:1px}
