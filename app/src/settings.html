@@ -1,134 +1,142 @@
 <!doctype html>
-<!-- Customize window: Dota setup, per-role switches with a live preview (index.html?demo), updates and bug reports.
-     Every change goes through main.rs's set_setting, which saves it and tells the other windows. -->
+<!-- Customize window: a sidebar of five pages (setup, what shows, voice, hotkeys, updates and help) beside a live
+     preview (index.html?demo). Every change goes through main.rs's set_setting, which saves it and tells the other windows. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <title>Customize overlay</title>
 <script>try { document.documentElement.dataset.theme = localStorage.getItem('theme') || 'dark'; } catch {}</script>
 <style>
-/* Dota-style greys and gold */
-:root{--bg1:#1b2227;--bg2:#090c0e;--strip:#000000b7;--well:#00000066;--line:#ffffff1c;--ink:#dae2e5;--title:#b0bcc2;--label:#8b989e;--hi:#fff;
-  --gold:#ffcc33;--on:#45bb5f;color-scheme:dark}
-:root[data-theme=light]{--bg1:#eef1f2;--bg2:#dfe5e8;--strip:#0000001a;--well:#0000000d;--line:#00000024;--ink:#1a2024;--title:#3b4448;--label:#4f5a5f;--hi:#0d1113;
-  --gold:#8a6400;--on:#17652a;color-scheme:light}
+/* Barlow ships with the app (fonts/, SIL Open Font License), so Customize looks the same offline */
+@font-face{font-family:Barlow;font-weight:400;src:url(fonts/barlow-400.woff2) format('woff2')}
+@font-face{font-family:Barlow;font-weight:500;src:url(fonts/barlow-500.woff2) format('woff2')}
+@font-face{font-family:Barlow;font-weight:600;src:url(fonts/barlow-600.woff2) format('woff2')}
+@font-face{font-family:Barlow;font-weight:700;src:url(fonts/barlow-700.woff2) format('woff2')}
+/* Dota greys, one gold for the main action of a page, green for "on" and "done" */
+:root{--bg:#14191d;--side:#0f1316;--raise:#1a2026;--well:#00000040;--line:#ffffff14;--ink:#e3e8ea;--soft:#9aa6ab;--mute:#76838a;--hi:#fff;
+  --gold:#f2c14e;--on:#4cb866;--sel:#ffffff0f;--err:#ff7a6b;color-scheme:dark}
+:root[data-theme=light]{--bg:#f4f6f7;--side:#e9edef;--raise:#fff;--well:#0000000a;--line:#0000001a;--ink:#182024;--soft:#4d5a60;--mute:#68757b;--hi:#0d1113;
+  --gold:#8a6400;--on:#1f7a37;--sel:#0000000c;--err:#b3261e;color-scheme:light}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%}
-body{background:linear-gradient(var(--bg1),var(--bg2));color:var(--ink);font:14px/1.35 Bahnschrift,'Segoe UI',sans-serif;
-  display:flex;flex-direction:column;overflow:hidden;user-select:none}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 Barlow,'Segoe UI',sans-serif;display:flex;flex-direction:column;overflow:hidden;user-select:none}
 :focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-header{display:flex;align-items:center;gap:8px;padding:8px 8px 8px 14px;background:var(--strip);cursor:move}
-header h1{flex:1;margin:0;font:600 13px Bahnschrift,sans-serif;text-transform:uppercase;letter-spacing:2px;color:var(--title)}
-.key{font-size:12px;color:var(--label);margin-right:6px}
-.x{border:0;background:none;font-size:20px;line-height:1;padding:2px 8px;color:var(--label);cursor:pointer}
-.x:hover{color:var(--hi)}
-main{flex:1;display:grid;grid-template-columns:1fr 470px;min-height:0}
+button{font:inherit;cursor:pointer}
 
-/* left: the switches */
-#list{overflow:auto;padding:4px 14px 16px}
-h2{margin:16px 0 4px;padding-bottom:5px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:2px;color:var(--title);
-  border-image:linear-gradient(90deg,var(--line),transparent) 0 0 1 0/0 0 1px 0}
-.opt{display:grid;grid-template-columns:auto 1fr;column-gap:12px;align-items:start;padding:8px 8px;border-radius:3px;cursor:pointer}
-.opt:hover,.opt:focus-within{background:var(--well)}
-.opt b{font-weight:600;color:var(--hi)}
-.opt small{grid-column:2;color:var(--label);font-size:13px}
-/* the checkbox is drawn as a small switch; the real input stays for keyboard and screen readers */
-.opt input{appearance:none;margin:2px 0 0;width:30px;height:16px;border-radius:8px;background:#0008;border:1px solid var(--line);position:relative;cursor:pointer;grid-row:span 2}
-.opt input::after{content:'';position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:var(--label);transition:transform .15s,background .15s}
-.opt input:checked{background:color-mix(in srgb,var(--on) 35%,transparent);border-color:var(--on)}
-.opt input:checked::after{transform:translateX(14px);background:var(--on)}
-.opt input:disabled{opacity:.4}
-select{font:inherit;color:var(--ink);background:var(--well);border:1px solid var(--line);border-radius:3px;padding:4px 6px;margin:4px 8px}
-/* per-role table: what it is, then its Show and Voice switches */
-.tabs{display:flex;margin:6px 8px 4px}
-.tabs button{flex:1;font:inherit;font-size:13px;color:var(--ink);background:var(--well);border:1px solid var(--line);margin-left:-1px;padding:6px 0;cursor:pointer}
-.tabs button:first-child{border-radius:3px 0 0 3px;margin-left:0}
-.tabs button:last-child{border-radius:0 3px 3px 0}
-.tabs button[aria-pressed=true]{background:var(--gold);color:#111;border-color:var(--gold);font-weight:600}
-.note{margin:2px 8px 8px;color:var(--label);font-size:13px}
+header{display:flex;align-items:center;gap:6px;height:52px;flex:none;padding:0 10px 0 20px;border-bottom:1px solid var(--line);cursor:move}
+header h1{flex:1;margin:0;font-size:17px;font-weight:600;white-space:nowrap}
+.ghost{font-size:14px;font-weight:500;color:var(--soft);background:none;border:0;border-radius:6px;padding:6px 10px;white-space:nowrap}
+.ghost:hover,.ghost[aria-expanded=true]{color:var(--hi);background:var(--sel)}
+.icon{display:grid;place-items:center;width:34px;height:34px;padding:0;border:0;border-radius:6px;background:none;color:var(--soft)}
+.icon:hover{color:var(--hi);background:var(--sel)}
+.icon svg{width:18px;height:18px;fill:currentColor}
+.coffee{display:flex;align-items:center;gap:7px;margin-left:4px;font-size:14px;font-weight:600;color:#1a1408;background:var(--gold);border:0;border-radius:6px;padding:7px 14px;white-space:nowrap}
+:root[data-theme=light] .coffee{color:#fff}
+.coffee:hover{filter:brightness(1.08)}
+.coffee svg{width:17px;height:17px}
+.x{border:0;background:none;font-size:22px;line-height:1;padding:4px 8px;color:var(--mute)}
+.x:hover{color:var(--hi)}
+
+/* "Report a problem": three choices under the header, each a GitHub form */
+#fbmenu{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px 20px;background:var(--side);border-bottom:1px solid var(--line)}
+#fbmenu[hidden]{display:none}
+#fbmenu p{flex-basis:100%;margin:0 0 2px;color:var(--soft);font-size:14px}
+#fbmenu button{font-weight:500;color:var(--ink);background:var(--raise);border:1px solid var(--line);border-radius:6px;padding:6px 14px}
+#fbmenu button:hover{border-color:var(--gold)}
+/* shown only when GitHub has a newer version */
+#update{display:flex;align-items:center;gap:12px;padding:10px 20px;background:var(--side);border-bottom:1px solid var(--line)}
+#update[hidden]{display:none}
+#update span{flex:1}
+#update b{font-weight:600}
+#update .btn{margin:0}
+
+main{flex:1;display:grid;grid-template-columns:184px 1fr 400px;min-height:0}
+/* left: the five pages */
+nav{display:flex;flex-direction:column;gap:2px;padding:16px 10px 14px;background:var(--side);border-right:1px solid var(--line)}
+nav button{display:flex;align-items:center;gap:10px;padding:9px 12px;border:0;border-radius:6px;background:none;color:var(--soft);font-size:15px;font-weight:500;text-align:left}
+nav button:hover{color:var(--ink);background:var(--sel)}
+nav button[aria-current=page]{color:var(--hi);background:var(--sel);font-weight:600}
+/* Setup's dot: green when Dota has its file and the STRATZ token is saved, gold while a step is left */
+nav .dot{width:8px;height:8px;border-radius:50%;margin-left:auto;background:var(--gold)}
+nav .dot.ok{background:var(--on)}
+nav .foot{margin-top:auto;padding:0 12px;color:var(--mute);font-size:13px;line-height:1.5}
+
+/* middle: the page you picked */
+#list{overflow:auto;padding:22px 22px 28px}
+.page[hidden]{display:none}
+.page h2{margin:0 0 4px;font-size:22px;font-weight:600;letter-spacing:-.2px}
+.page h3{margin:26px 0 6px;font-size:15px;font-weight:600;color:var(--soft)}
+.lead{margin:0 0 18px;color:var(--soft);max-width:46ch;text-wrap:pretty}
+.p{margin:0 0 10px;color:var(--soft);max-width:48ch;text-wrap:pretty}
+.p b{color:var(--ink);font-weight:600}
+.p[hidden],ol[hidden],div[hidden],button[hidden]{display:none}
+.p.ok{color:var(--on)}
+.p.err{color:var(--err)}
+code{white-space:nowrap;font:14px Consolas,monospace;color:var(--hi);background:var(--well);padding:1px 6px;border-radius:4px;user-select:text}
+ol{margin:0 0 14px;padding-left:20px;color:var(--soft)}
+li{margin:3px 0}
+li b{color:var(--ink);font-weight:600}
+.btn{font-weight:600;color:#1a1408;background:var(--gold);border:0;border-radius:6px;padding:8px 16px;margin:2px 0 14px}
+:root[data-theme=light] .btn{color:#fff}
+.btn.plain{color:var(--ink);background:none;border:1px solid var(--line);padding:7px 14px}
+.btn.plain:hover{border-color:var(--gold)}
+.btn:disabled{opacity:.6;cursor:default}
+.paste{display:flex;gap:8px}
+.paste input{flex:1;min-width:0;font:inherit;color:var(--ink);background:var(--raise);border:1px solid var(--line);border-radius:6px;padding:7px 10px;user-select:text}
+.paste .btn{margin:0}
+select{font:inherit;color:var(--ink);background:var(--raise);border:1px solid var(--line);border-radius:6px;padding:6px 10px}
+.field{display:flex;align-items:center;gap:12px;margin:0 0 16px}
+.field span{color:var(--soft)}
+
+/* switches: the real checkbox, drawn as a switch, so keyboard and screen readers still work */
+.sw{appearance:none;flex:none;width:34px;height:20px;margin:0;border-radius:10px;background:var(--line);position:relative;cursor:pointer;transition:background .2s}
+.sw::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--soft);transition:transform .2s,background .2s}
+.sw:checked{background:color-mix(in srgb,var(--on) 40%,transparent)}
+.sw:checked::after{transform:translateX(14px);background:var(--on)}
+.sw:disabled{opacity:.4}
+/* a plain setting: name and one line, switch on the right */
+.opt{display:grid;grid-template-columns:1fr auto;align-items:center;gap:14px;padding:10px 4px;border-top:1px solid var(--line);cursor:pointer}
+.opt b,.rp b{display:block;font-weight:600}
+.opt small,.rp small{display:block;color:var(--mute);font-size:14px}
+/* the per-role table: which role, then each part with its Show and Voice switches */
+.seg{display:flex;padding:3px;margin:0 0 6px;background:var(--side);border:1px solid var(--line);border-radius:8px}
+.seg button{flex:1;padding:6px 2px;border:0;border-radius:6px;background:none;color:var(--soft);font-size:14px;font-weight:500;white-space:nowrap}
+.seg button[aria-pressed=true]{background:var(--raise);color:var(--hi);font-weight:600;box-shadow:0 1px 2px #0003}
+.note{margin:0 0 14px;color:var(--mute);font-size:14px}
 .note b{color:var(--ink);font-weight:600}
-.th,.rp{display:grid;grid-template-columns:1fr 54px 54px;column-gap:6px;align-items:center;padding:7px 8px;border-radius:3px}
-.th{padding-bottom:2px;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--label)}
-.th span{text-align:center}
-.rp:hover,.rp:focus-within{background:var(--well)}
-.rp b{font-weight:600;color:var(--hi)}
-.rp small{display:block;color:var(--label);font-size:13px}
-.rp input{appearance:none;justify-self:center;margin:0;width:30px;height:16px;border-radius:8px;background:#0008;border:1px solid var(--line);position:relative;cursor:pointer}
-.rp input::after{content:'';position:absolute;top:2px;left:2px;width:10px;height:10px;border-radius:50%;background:var(--label);transition:transform .15s,background .15s}
-.rp input:checked{background:color-mix(in srgb,var(--on) 35%,transparent);border-color:var(--on)}
-.rp input:checked::after{transform:translateX(14px);background:var(--on)}
-.rp .na{text-align:center;color:var(--label);font-size:12px}
+.th,.rp{display:grid;grid-template-columns:1fr 46px 46px;align-items:center;gap:6px}
+.th{padding:0 4px 6px;color:var(--mute);font-size:13px;font-weight:600}
+.th span,.rp .na{text-align:center}
+.rp{padding:9px 4px;border-top:1px solid var(--line)}
+.rp .sw{justify-self:center}
+.rp .na{color:var(--mute)}
+/* hotkeys: what it does, then the combination; click the combination to change it */
+.hk{display:flex;align-items:center;gap:12px;padding:10px 4px;border-top:1px solid var(--line)}
+.hk span{flex:1}
+.hk .btn{margin:0;min-width:150px}
+.hk .btn[aria-pressed=true]{border-color:var(--gold);color:var(--gold)}
 
 /* right: the overlay running on a made-up game, on a dark terrain backdrop */
-#preview{border-left:1px solid var(--line);padding:16px;display:flex;flex-direction:column;gap:10px}
-.stage{position:relative;height:520px;border-radius:4px;overflow:hidden;box-shadow:inset 0 0 0 1px var(--line);
+#preview{padding:18px;display:flex;flex-direction:column;gap:10px;border-left:1px solid var(--line)}
+.stage{position:relative;height:470px;border-radius:10px;overflow:hidden;
   background:radial-gradient(circle at 30% 70%,#3b4a2e,transparent 55%),linear-gradient(135deg,#26331f 0 45%,#2c4650 45% 54%,#26331f 54%)}
-/* same shape as the overlay window (0.44 x 0.52 of screen height); color-scheme matches the page inside so it stays see-through */
-.stage iframe{position:absolute;right:0;top:0;width:440px;height:520px;border:0;background:transparent;color-scheme:normal}
-.cap{color:var(--label);font-size:13px;margin:0}
-.cap b{color:var(--ink);font-weight:600}
-/* "Report a problem or idea": a header button that opens three choices, each a GitHub form */
-.fb{font:inherit;font-size:13px;font-weight:600;color:var(--ink);background:var(--well);border:1px solid var(--line);border-radius:3px;padding:5px 12px;cursor:pointer}
-.fb:hover,.fb[aria-expanded=true]{border-color:var(--gold);color:var(--hi)}
-/* GitHub icon and the coffee (Ko-fi) button, right before the close button */
-header h1,.fb{white-space:nowrap}
-.sep{width:1px;align-self:stretch;margin:4px 2px;background:var(--line)}
-.icon{display:grid;place-items:center;width:30px;height:30px;padding:0;border:0;border-radius:3px;background:none;color:var(--label);cursor:pointer}
-.icon:hover{color:var(--hi);background:var(--well)}
-.icon svg{width:18px;height:18px;fill:currentColor}
-.coffee{display:flex;align-items:center;gap:6px;font:inherit;font-size:13px;font-weight:600;color:var(--bg1);background:var(--gold);border:0;border-radius:3px;padding:6px 12px;cursor:pointer;white-space:nowrap}
-.coffee:hover{filter:brightness(1.1)}
-.coffee svg{width:16px;height:16px}
-#fbmenu{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;background:var(--well);border-bottom:1px solid var(--line)}
-#fbmenu[hidden]{display:none}
-#fbmenu p{flex-basis:100%;margin:0 0 2px;color:var(--label);font-size:13px}
-#fbmenu button{font:inherit;font-weight:600;color:var(--ink);background:none;border:1px solid var(--line);border-radius:3px;padding:6px 14px;cursor:pointer}
-#fbmenu button:hover{border-color:var(--gold);color:var(--hi)}
+/* the overlay window's own shape (440 x 520), scaled to fit; color-scheme matches the page inside so it stays see-through */
+.stage iframe{position:absolute;right:0;top:0;width:440px;height:520px;border:0;transform:scale(.83);transform-origin:top right;background:transparent;color-scheme:normal}
+.cap{margin:0;color:var(--mute);font-size:14px}
+
 /* "How it works": the setup and how-it-works pictures in place of the settings */
-#guide{flex:1;overflow:auto;display:flex;flex-direction:column;align-items:center;gap:14px;padding:16px}
+#guide{flex:1;overflow:auto;display:flex;flex-direction:column;align-items:center;gap:14px;padding:18px}
 #guide[hidden]{display:none}
 #guide:not([hidden]) ~ main{display:none}
 #guide img{width:880px;max-width:100%;height:auto}
-#guide button{font:inherit;font-weight:600;color:var(--bg1);background:var(--gold);border:0;border-radius:3px;padding:6px 16px;cursor:pointer}
-.key{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-/* shown only when GitHub has a newer version */
-#update{display:flex;align-items:center;gap:12px;padding:8px 14px;background:var(--well);border-bottom:1px solid var(--gold)}
-#update[hidden]{display:none}
-#update span{flex:1}
-#update b{color:var(--hi);font-weight:600}
-#update button{font:inherit;font-weight:600;color:var(--bg1);background:var(--gold);border:0;border-radius:3px;padding:5px 14px;cursor:pointer}
-/* Dota setup and the STRATZ token: short steps, one gold button, a line that turns green when it works */
-.steps{padding:4px 8px 6px}
-.steps p{margin:2px 0 8px;color:var(--label);font-size:13px}
-.steps p[hidden],.steps ol[hidden],.steps div[hidden]{display:none}
-.steps b{color:var(--ink);font-weight:600}
-.steps ol{margin:0 0 10px;padding-left:20px;color:var(--label);font-size:13px}
-.steps li{margin:2px 0}
-.steps code{white-space:nowrap;font:13px Consolas,monospace;color:var(--hi);background:var(--well);padding:1px 5px;border-radius:3px;user-select:text}
-.steps button{font:inherit;font-weight:600;color:var(--bg1);background:var(--gold);border:0;border-radius:3px;padding:6px 16px;margin:0 0 10px;cursor:pointer}
-.steps button[hidden]{display:none}
-.steps button:disabled{opacity:.6;cursor:default}
-.steps button.plain{color:var(--ink);background:none;border:1px solid var(--line);padding:5px 14px}
-.steps button.plain:hover{border-color:var(--gold);color:var(--hi)}
-.steps .ok{color:var(--on)}
-.steps .err{color:#ff7a6b}
-:root[data-theme=light] .steps .err{color:#b3261e}
-.paste{display:flex;gap:8px}
-/* hotkeys: a name and the combination, click the combination to change it */
-.hk{display:flex;align-items:center;gap:12px;margin:0 0 8px}
-.hk span{flex:1;color:var(--ink)}
-.steps .hk button{margin:0;min-width:140px}
-.steps .hk button[aria-pressed=true]{border-color:var(--gold);color:var(--gold)}
-.paste input{flex:1;min-width:0;font:inherit;color:var(--ink);background:var(--well);border:1px solid var(--line);border-radius:3px;padding:5px 8px;user-select:text}
+#guide .btn{margin:0}
 </style>
 </head>
 <body>
 <header data-tauri-drag-region>
-  <h1 data-tauri-drag-region>Customize overlay</h1>
-  <span class="key" id="keyHint" data-tauri-drag-region title="Ctrl+Shift+D opens and closes this, in game too. Ctrl+Shift+S hides the overlay">Ctrl+Shift+D opens this in game</span>
-  <button class="fb" id="guideBtn" type="button" aria-expanded="false" aria-controls="guide">How it works</button>
-  <button class="fb" id="feedback" type="button" aria-expanded="false" aria-controls="fbmenu">Report a problem or idea</button>
-  <span class="sep" aria-hidden="true"></span>
+  <h1 data-tauri-drag-region>GG Go Next</h1>
+  <button class="ghost" id="guideBtn" type="button" aria-expanded="false" aria-controls="guide">How it works</button>
+  <button class="ghost" id="feedback" type="button" aria-expanded="false" aria-controls="fbmenu">Report a problem</button>
   <button class="icon" type="button" data-link="github" title="GG Go Next on GitHub" aria-label="GG Go Next on GitHub"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg></button>
   <button class="coffee" type="button" data-link="coffee" title="Tip on Ko-fi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h13v6a5 5 0 01-5 5H9a5 5 0 01-5-5V8zm13 1h1.5a2.5 2.5 0 010 5H17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M8 3c0 1 1 1 1 2M12 3c0 1 1 1 1 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Buy me a coffee</button>
   <button class="x" id="close" type="button" aria-label="Close">×</button>
@@ -141,20 +149,27 @@ header h1,.fb{white-space:nowrap}
 </div>
 <div id="update" role="status" hidden>
   <span id="updateText">GG Go Next <b id="updateVersion"></b> is out.</span>
-  <button id="getUpdate" type="button">Download</button>
+  <button class="btn" id="getUpdate" type="button">Download</button>
 </div>
 <!-- the same two pictures as the README, from guide/ -->
 <section id="guide" aria-label="How GG Go Next works and how to set it up" hidden>
   <img src="guide/setup.svg" alt="Setup in four steps: install, click Set up Dota here, add -gamestateintegration to Dota's launch options in Steam and pick Borderless Window in Dota, then optionally paste a STRATZ token. Each step shows a green line here when it worked.">
   <img src="guide/how-it-works.svg" alt="How it works: Dota sends its official game feed to GG Go Next on your PC, which shows the overlay, voice calls and draft helper. Online it only talks to STRATZ, Valve's image server and GitHub. It never reads game memory or files, never presses keys, and has no server of its own.">
-  <button type="button" id="guideClose">Back to settings</button>
+  <button class="btn" type="button" id="guideClose">Back to settings</button>
 </section>
 <main>
+  <nav aria-label="Settings pages">
+    <button type="button" data-page="setup">Setup <span class="dot" id="setupDot" title="A step is left"></span></button>
+    <button type="button" data-page="screen">On screen</button>
+    <button type="button" data-page="voice">Voice</button>
+    <button type="button" data-page="hotkeys">Hotkeys</button>
+    <button type="button" data-page="help">Updates and help</button>
+    <div class="foot"><span id="keyHint">Ctrl+Shift+D opens this in game</span><br><span id="ver"></span></div>
+  </nav>
   <div id="list"></div>
   <aside id="preview">
     <div class="stage"><iframe id="demo" src="index.html?demo" title="Overlay preview"></iframe></div>
-    <p class="cap"><b>Live preview</b> on a made-up game at 5:38. Every switch changes it right away, and the part
-      you point at gets a gold outline.</p>
+    <p class="cap">Live preview on a made-up game. Point at a setting to find it here.</p>
   </aside>
 </main>
 <script type="module">
@@ -164,43 +179,45 @@ const win = window.__TAURI__.window.getCurrentWindow();
 
 // what each per-role part is, under its name in the table
 const WHAT = {
-  water: 'At 2:00 and 4:00 only. Mids use them to refill a Bottle.',
-  power: 'Every 2 minutes from 6:00, top or bottom river.',
-  bounty: 'Gold runes every 4 minutes, starting at 0:00.',
-  wisdom: 'Experience shrines every 7 minutes.',
-  lotus: 'A healing lotus every 3 minutes.',
-  stack: 'Pull a camp at :53 so a second one spawns.',
-  roshan: 'His pit, when he moves, when he can be back, and the Aegis.',
-  tormentor: 'Which side it\'s on, from 20:00.',
-  glyphs: 'Green while the enemy glyph is down, so you know when to push.',
-  wards: 'How many wards your team has up and the next one to run out.',
-  items: 'What players on your hero finish around this minute, with win rates.',
-  hints: 'Items against the enemy heroes you\'ve seen. Speaks up for invisible heroes and big healers.',
-  levelup: 'Which skill or talent top players take when you have a point to spend.',
-  tips: 'Dying a lot, buyback gold late in the game, and a late BKB.',
-  farm: 'When you\'re ready for ancients, when ancients near you are up, and the :51 ancient stack.',
-  neutral: 'The next neutral tier to craft, what pros pick for your hero and role, and a nudge if you fall a tier behind.',
+  water: 'At 2:00 and 4:00, for Bottle refills.',
+  power: 'Every 2 minutes from 6:00.',
+  bounty: 'Every 4 minutes from 0:00.',
+  wisdom: 'Every 7 minutes.',
+  lotus: 'Every 3 minutes.',
+  stack: 'Pull at :53 for a second camp.',
+  roshan: 'His pit, respawn window and Aegis.',
+  tormentor: 'Which side, from 20:00.',
+  glyphs: 'Green while theirs is down.',
+  wards: 'How many are up, next one out.',
+  items: 'What wins on your hero now.',
+  hints: 'Items against their heroes.',
+  levelup: 'The skill top players take next.',
+  tips: 'Deaths, buyback gold, a late BKB.',
+  farm: 'Ancients, and the :51 stack.',
+  neutral: 'The next neutral tier to craft.',
 };
-// id, label, what it does, default; el_<part> ids show or hide that part of the overlay for every role
+// short role names for the five buttons above the table
+const SHORT = { 1: 'Carry', 2: 'Mid', 3: 'Offlane', 4: 'Soft sup', 5: 'Hard sup' };
+// page, heading, then id, label, what it does, default; el_<part> ids show or hide that part of the overlay for every role
 const GROUPS = [
-  ['Top strip', [
+  ['screen', 'Top strip', [
     ['el_dn', 'Day and night', 'Time to the next switch, and Night Stalker\'s night.'],
     ['el_tp', 'TP scroll', 'Ready, on cooldown, or missing.'],
     ['el_bb', 'Buyback', 'Ready, on cooldown, or how much gold you\'re short.'],
-    ['el_cr', 'Courier', 'Only shows while your courier is dead.'],
+    ['el_cr', 'Courier', 'Only while your courier is dead.'],
   ]],
-  ['Style', [
-    ['el_roleline', 'Show my role in game', 'A small line at the top: "Playing as Mid". If it guessed wrong, pick the right role above.'],
+  ['screen', 'Style', [
+    ['el_roleline', 'Show my role in game', 'A small "Playing as Mid" line, so a wrong guess stands out.'],
   ]],
-  ['Voice', [
-    ['voice', 'Voice alerts', 'Turns every call off at once. Which ones talk is set per role above.'],
-    ['jokes', 'Spoken jokes', 'Now and then a short joke, like when you have no TP or the map is dark late in the game. Voice only, with several versions so they don\'t get old.'],
+  ['voice', '', [
+    ['voice', 'Voice alerts', 'Every call at once. Which ones talk is set per role in On screen.'],
+    ['jokes', 'Spoken jokes', 'Now and then a short joke, like when you have no TP. Voice only.'],
   ]],
-  ['Updates', [
-    ['check_updates', 'Check for updates', 'Asks GitHub once at start whether a newer version is out. Nothing downloads or installs by itself.'],
+  ['help', 'Updates', [
+    ['check_updates', 'Check for updates', 'Asks GitHub once at start. Nothing installs by itself.'],
   ]],
-  ['Bug reports', [
-    ['save_logs', 'Save game-feed logs', 'Keeps a copy of what Dota sends in a logs folder next to the app, to help fix bugs. Applies on the next start.', false],
+  ['help', 'Bug reports', [
+    ['save_logs', 'Save game-feed logs', 'Keeps what Dota sends in a logs folder next to the app. Applies on the next start.', false],
   ]],
 ];
 // same list as VOICES in main.rs
@@ -212,7 +229,7 @@ const value = (id, def = true) => saved[id] ?? def;
 const list = document.getElementById('list');
 // same list as ROLES in main.rs
 const ROLES = [['auto', 'Auto (guess from your lane)'], ['1', 'Carry'], ['2', 'Mid'], ['3', 'Offlane'], ['4', 'Soft support'], ['5', 'Hard support']];
-const rolePick = `<label class="opt" style="grid-template-columns:1fr"><b>I'm playing</b><select id="role">${ROLES.map(([v, l]) =>
+const rolePick = `<label class="field"><span>I'm playing</span><select id="role">${ROLES.map(([v, l]) =>
   `<option value="${v}" ${value('role', 'auto') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`;
 // The table opens on the role you're playing: the one you picked, or the overlay's current guess
 const playing = () => {
@@ -222,55 +239,86 @@ const playing = () => {
 };
 let editing = playing();
 const roleHtml = () => {
-  const tabs = [1, 2, 3, 4, 5].map(n => `<button type="button" data-tab="${n}" aria-pressed="${n === editing}">${ROLE_NAMES[n]}</button>`).join('');
+  const tabs = [1, 2, 3, 4, 5].map(n => `<button type="button" data-tab="${n}" aria-pressed="${n === editing}" aria-label="${ROLE_NAMES[n]}">${SHORT[n]}</button>`).join('');
   const now = playing();
   const auto = value('role', 'auto') === 'auto';
   const rows = ROLE_PARTS.map(([part, label, canTalk]) => {
-    const sw = kind => { const id = roleKey(editing, part, kind); return `<input type="checkbox" id="${id}" aria-label="${label}: ${kind === 'show' ? 'show' : 'voice'} for ${ROLE_NAMES[editing]}" ${value(id, roleDefault(editing, part, kind)) ? 'checked' : ''}>`; };
-    return `<div class="rp" data-part="${part}"><span><b>${label}</b><small>${WHAT[part]}</small></span>${sw('show')}${canTalk ? sw('voice') : '<span class="na">no voice</span>'}</div>`;
+    const sw = kind => { const id = roleKey(editing, part, kind); return `<input type="checkbox" class="sw" id="${id}" aria-label="${label}: ${kind === 'show' ? 'show' : 'voice'} for ${ROLE_NAMES[editing]}" ${value(id, roleDefault(editing, part, kind)) ? 'checked' : ''}>`; };
+    return `<div class="rp" data-part="${part}"><span><b>${label}</b><small>${WHAT[part]}</small></span>${sw('show')}${canTalk ? sw('voice') : '<span class="na" title="No voice for this one">–</span>'}</div>`;
   }).join('');
-  return `<div class="tabs" role="group" aria-label="Role to set up">${tabs}</div>
-    <p class="note">${editing === now ? `This is the role you're playing now${auto ? ' (guessed)' : ''}, so the overlay uses these switches.` : `You're playing <b>${ROLE_NAMES[now]}</b>${auto ? ' (guessed)' : ''}; these switches take over when you play ${ROLE_NAMES[editing]}.`}
-    What you see here is exactly what shows and what talks.</p>
+  return `<div class="seg" role="group" aria-label="Role to set up">${tabs}</div>
+    <p class="note">${editing === now ? `The role you're playing now${auto ? ' (guessed)' : ''}.` : `You're playing <b>${ROLE_NAMES[now]}</b>${auto ? ' (guessed)' : ''}. These take over when you play ${ROLE_NAMES[editing]}.`}</p>
     <div class="th"><span></span><span>Show</span><span>Voice</span></div>${rows}`;
 };
+const opts = page => GROUPS.filter(([p]) => p === page).map(([, name, items]) => (name ? `<h3>${name}</h3>` : '') + items.map(([id, label, what, def]) =>
+  `<label class="opt" data-id="${id}"><span><b>${label}</b><small>${what}</small></span><input type="checkbox" class="sw" id="${id}" ${value(id, def) ? 'checked' : ''}></label>`).join('')).join('');
 const render = () => {
-  list.innerHTML = `<h2>Dota setup</h2><div id="setup" class="steps" aria-live="polite">
-      <p id="gsiFile">Looking for Dota…</p>
-      <button type="button" id="gsiInstall" hidden>Set up Dota</button>
-      <p id="gsiLaunch">Then in Steam, right-click Dota 2, pick Properties, and add <code>-gamestateintegration</code> to Launch Options.</p>
-      <p id="gsiLive">This line turns green once Dota starts with that option.</p>
-      <button type="button" class="plain" id="guideOpen">See the steps as a picture</button>
-    </div><h2>STRATZ token</h2><div id="stratz" class="steps">
-      <p>The draft helper's counter picks and the item and skill hints in game use numbers from STRATZ, a free Dota stats site. Timers and voice calls work without it.</p>
-      <p id="stratzState" aria-live="polite"></p>
-      <button type="button" class="plain" id="stratzChange" hidden>Use a different token</button>
-      <div id="stratzForm" hidden>
-        <ol>
-          <li>Click <b>Open stratz.com/api</b> and log in with Steam.</li>
-          <li>Copy the long code under <b>Default Token</b>.</li>
-          <li>Paste it here and click <b>Save</b>.</li>
-        </ol>
-        <button type="button" id="stratzOpen">Open stratz.com/api</button>
-        <div class="paste">
-          <input id="stratzToken" type="password" placeholder="Paste your STRATZ token" aria-label="STRATZ token" autocomplete="off">
-          <button type="button" class="plain" id="stratzSave">Save</button>
+  list.innerHTML = `<section class="page" data-page="setup" hidden>
+      <h2>Setup</h2><p class="lead">Two steps in Dota, and an optional token for the draft helper.</p>
+      <h3>Dota</h3><div id="setup" aria-live="polite">
+        <p class="p" id="gsiFile">Looking for Dota…</p>
+        <button type="button" class="btn" id="gsiInstall" hidden>Set up Dota</button>
+        <p class="p" id="gsiLaunch">Then in Steam, right-click Dota 2, pick Properties, and add <code>-gamestateintegration</code> to Launch Options.</p>
+        <p class="p" id="gsiLive">This line turns green once Dota starts with that option.</p>
+        <button type="button" class="btn plain" id="guideOpen">See the steps as a picture</button>
+      </div>
+      <h3>STRATZ token</h3><div id="stratz">
+        <p class="p">Counter picks and the item and skill hints use numbers from STRATZ, a free Dota stats site. Timers and voice calls work without it.</p>
+        <p class="p" id="stratzState" aria-live="polite"></p>
+        <button type="button" class="btn plain" id="stratzChange" hidden>Use a different token</button>
+        <div id="stratzForm" hidden>
+          <ol>
+            <li>Click <b>Open stratz.com/api</b> and log in with Steam.</li>
+            <li>Copy the long code under <b>Default Token</b>.</li>
+            <li>Paste it here and click <b>Save</b>.</li>
+          </ol>
+          <button type="button" class="btn" id="stratzOpen">Open stratz.com/api</button>
+          <div class="paste">
+            <input id="stratzToken" type="password" placeholder="Paste your STRATZ token" aria-label="STRATZ token" autocomplete="off">
+            <button type="button" class="btn plain" id="stratzSave">Save</button>
+          </div>
         </div>
       </div>
-    </div><h2>Your role</h2>${rolePick}<div id="perRole">${roleHtml()}</div>` + GROUPS.map(([name, opts]) => `<h2>${name}</h2>` + opts.map(([id, label, what, def]) =>
-    `<label class="opt" data-id="${id}"><input type="checkbox" id="${id}" ${value(id, def) ? 'checked' : ''}><b>${label}</b><small>${what}</small></label>`).join('')).join('')
-    + `<label class="opt" style="grid-template-columns:1fr"><b>Voice</b><select id="voice_pick">${VOICES.map(([v, l]) =>
-      `<option value="${v}" ${value('voice_pick', 'am_michael') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>`
-    + `<h2>Hotkeys</h2><div id="hotkeys" class="steps">
-      <p>Click a hotkey, then press the new combination. It needs Ctrl or Alt; Ctrl+Shift with a letter is safest. Esc cancels.</p>
-      <div class="hk"><span>Open and close Customize</span><button type="button" class="plain" data-hk="customize" aria-pressed="false"></button></div>
-      <div class="hk"><span>Hide and show the overlay</span><button type="button" class="plain" data-hk="hide" aria-pressed="false"></button></div>
-      <p id="hkMsg" aria-live="polite"></p>
-    </div>`;
+    </section>
+    <section class="page" data-page="screen" hidden>
+      <h2>On screen</h2><p class="lead">What shows and what talks for each role. The preview follows every switch.</p>
+      ${rolePick}<div id="perRole">${roleHtml()}</div>${opts('screen')}
+    </section>
+    <section class="page" data-page="voice" hidden>
+      <h2>Voice</h2><p class="lead">Calls come a little early, so you have time to move.</p>
+      <label class="field"><span>Voice</span><select id="voice_pick">${VOICES.map(([v, l]) =>
+        `<option value="${v}" ${value('voice_pick', 'am_michael') === v ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      ${opts('voice')}
+    </section>
+    <section class="page" data-page="hotkeys" hidden>
+      <h2>Hotkeys</h2><p class="lead">Click a hotkey, then press the new keys. It needs Ctrl or Alt; Ctrl+Shift and a letter is safest. Esc cancels.</p>
+      <div id="hotkeys">
+        <div class="hk"><span>Open and close Customize</span><button type="button" class="btn plain" data-hk="customize" aria-pressed="false"></button></div>
+        <div class="hk"><span>Hide and show the overlay</span><button type="button" class="btn plain" data-hk="hide" aria-pressed="false"></button></div>
+        <p class="p" id="hkMsg" aria-live="polite"></p>
+      </div>
+    </section>
+    <section class="page" data-page="help" hidden>
+      <h2>Updates and help</h2><p class="lead">Found a bug or have an idea? Use Report a problem at the top.</p>
+      ${opts('help')}
+    </section>`;
   document.getElementById('voice_pick').disabled = !document.getElementById('voice').checked;
 };
 render();
 const redrawRoles = () => { document.getElementById('perRole').innerHTML = roleHtml(); };
+
+// pages: the last one you used, or Setup the first time
+const store = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+const navButtons = document.querySelectorAll('nav [data-page]');
+const showPage = page => {
+  for (const s of list.querySelectorAll('.page')) s.hidden = s.dataset.page !== page;
+  navButtons.forEach(b => b.dataset.page === page ? b.setAttribute('aria-current', 'page') : b.removeAttribute('aria-current'));
+  list.scrollTop = 0;
+  store.set('page', page);
+};
+navButtons.forEach(b => b.onclick = () => showPage(b.dataset.page));
+showPage(store.get('page') || 'setup');
+window.__TAURI__.app?.getVersion?.().then(v => { document.getElementById('ver').textContent = 'Version ' + v; }).catch(() => {});
 
 const demo = document.getElementById('demo');
 const tell = (id, v, animate = true) => demo.contentWindow?.postMessage([id, v, animate], '*');
@@ -285,6 +333,7 @@ const previewRole = (animate = false) => {
 
 list.addEventListener('change', e => {
   const el = e.target, v = el.type === 'checkbox' ? el.checked : el.value;
+  if (!el.id || el.id === 'stratzToken') return;
   saved[el.id] = v;
   invoke('set_setting', { id: el.id, value: v }).catch(() => {});
   tell(el.id, v);
@@ -318,12 +367,10 @@ let picking = null;
 const showKeys = (k, msg, kind = '') => {
   if (!k) return;
   for (const b of document.querySelectorAll('[data-hk]')) { b.textContent = k[b.dataset.hk].combo; b.setAttribute('aria-pressed', 'false'); }
-  const hint = document.getElementById('keyHint');
-  hint.textContent = `${k.customize.combo} opens this in game`;
-  hint.title = `${k.customize.combo} opens and closes this, in game too. ${k.hide.combo} hides the overlay`;
+  document.getElementById('keyHint').textContent = `${k.customize.combo} opens this in game`;
   const taken = Object.values(k).filter(h => !h.ok).map(h => `Another program already uses ${h.combo}, so it does nothing right now. Pick another.`);
   hkMsg.textContent = msg ?? taken.join(' ');
-  hkMsg.className = kind || (msg == null && taken.length ? 'err' : '');
+  hkMsg.className = 'p ' + (kind || (msg == null && taken.length ? 'err' : ''));
 };
 const stopPicking = (msg, kind) => {
   if (!picking) return;
@@ -337,7 +384,7 @@ document.getElementById('hotkeys').addEventListener('click', e => {
   picking = b.dataset.hk;
   document.querySelectorAll('[data-hk]').forEach(x => x.setAttribute('aria-pressed', x === b));
   b.textContent = 'Press keys…';
-  hkMsg.textContent = ''; hkMsg.className = '';
+  hkMsg.textContent = ''; hkMsg.className = 'p';
   invoke('record_hotkey', { recording: true }).catch(() => {});
 });
 // capture phase, so Escape cancels the pick instead of closing the window
@@ -349,7 +396,7 @@ addEventListener('keydown', e => {
   const combo = [e.ctrlKey && 'Ctrl', e.altKey && 'Alt', e.shiftKey && 'Shift', e.code.replace(/^(Key|Digit)/, '')].filter(Boolean).join('+');
   const which = picking;
   invoke('set_hotkey', { which, combo }).then(k => { picking = null; showKeys(k, `Saved. ${combo} now ${DOES[which]}.`, 'ok'); },
-    err => { hkMsg.textContent = String(err); hkMsg.className = 'err'; });
+    err => { hkMsg.textContent = String(err); hkMsg.className = 'p err'; });
 }, true);
 // leaving the window mid-pick gives the old keys back
 addEventListener('blur', () => stopPicking());
@@ -380,14 +427,24 @@ document.addEventListener('keydown', e => {
   else if (!guide.hidden) { showGuide(false); e.stopPropagation(); }
 });
 
+// Setup's dot in the sidebar: green once Dota has its file and a STRATZ token is saved
+const done = { file: false, token: false };
+const markSetup = (k, v) => {
+  done[k] = v;
+  const dot = document.getElementById('setupDot'), ok = done.file && done.token;
+  dot.classList.toggle('ok', ok);
+  dot.title = ok ? 'Done' : 'A step is left';
+};
+
 // Dota setup: main.rs finds Dota through Steam; ready means the file is there and current
 const gsiFile = document.getElementById('gsiFile'), gsiInstall = document.getElementById('gsiInstall');
 const showSetup = (ready, error) => {
-  gsiFile.className = ready ? 'ok' : '';
+  gsiFile.className = 'p' + (ready ? ' ok' : '');
   gsiFile.textContent = error ? `${error} Step 3 of the install guide on GitHub shows where to copy the file by hand.`
     : ready ? 'Dota has the file it needs to send game data here.'
     : 'Dota needs one small file before it can send game data here. This button puts it in Dota\'s folder.';
   gsiInstall.hidden = ready || !!error;
+  markSetup('file', !!ready);
 };
 const dotaSetup = install => invoke('dota_setup', { install }).then(r => showSetup(r), e => showSetup(false, String(e)));
 gsiInstall.onclick = () => dotaSetup(true);
@@ -395,8 +452,8 @@ dotaSetup(false);
 // any game data at all proves the launch option works
 window.__TAURI__.event.listen('gsi', () => {
   const live = document.getElementById('gsiLive');
-  if (live.className) return;
-  live.className = 'ok';
+  if (live.classList.contains('ok')) return;
+  live.className = 'p ok';
   live.textContent = 'Dota is connected.';
   document.getElementById('gsiLaunch').hidden = true;
 });
@@ -407,9 +464,10 @@ const stratzChange = document.getElementById('stratzChange'), stratzInput = docu
 const stratzSave = document.getElementById('stratzSave');
 const showStratz = (have, msg, kind = '') => {
   stratzState.textContent = msg ?? (have ? 'Token saved. Counter picks and hints are on.' : 'No token yet. It takes about a minute:');
-  stratzState.className = kind || (have ? 'ok' : '');
+  stratzState.className = 'p ' + (kind || (have ? 'ok' : ''));
   stratzForm.hidden = have;
   stratzChange.hidden = !have;
+  if (msg == null) markSetup('token', have);
 };
 document.getElementById('stratzOpen').onclick = () => invoke('open_stratz');
 stratzChange.onclick = () => { showStratz(false, 'Paste the new token:'); stratzInput.focus(); };

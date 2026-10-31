@@ -103,6 +103,6 @@ GitHub Actions ([build.yml](.github/workflows/build.yml)), so the download match
 ---
 
 Data from [STRATZ](https://stratz.com). Hero list from [dotaconstants](https://github.com/odota/dotaconstants)
-(MIT). Voices made with [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M) (Apache 2.0). GG Go Next is MIT
+(MIT). Voices made with [Kokoro](https://huggingface.co/hexgrad/Kokoro-82M) (Apache 2.0). Font: [Barlow](https://github.com/jpt/barlow) (SIL OFL). GG Go Next is MIT
 licensed ([LICENSE](LICENSE)) and isn't affiliated with or endorsed by Valve. Dota 2 is a trademark of Valve
 Corporation; hero and item pictures load from Valve's servers and belong to Valve.
